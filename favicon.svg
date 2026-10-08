@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <circle cx="256" cy="256" r="180" stroke="rgba(255,255,255,0.15)" stroke-width="8" fill="none" />
+  <!-- Wallet Body -->
+  <g filter="url(#shadow)">
+    <rect x="128" y="160" width="256" height="192" rx="28" fill="#ffffff" />
+    <path d="M128 210 Q256 225 384 210" stroke="#e2e8f0" stroke-width="4" fill="none" />
+    <rect x="280" y="226" width="104" height="60" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="3" />
+    <circle cx="312" cy="256" r="12" fill="#f59e0b" />
+    <!-- Floating Coins -->
+    <circle cx="210" cy="140" r="32" fill="#fbbf24" stroke="#ffffff" stroke-width="4" />
+    <path d="M204 128 L216 128 M210 128 L210 152 M204 152 L216 152" stroke="#b45309" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>
