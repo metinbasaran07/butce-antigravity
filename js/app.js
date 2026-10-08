@@ -207,6 +207,16 @@ function renderApp() {
   }
 }
 
+let isBalanceHidden = localStorage.getItem('butcem_hide_balance') === 'true';
+
+function toggleBalanceVisibility() {
+  isBalanceHidden = !isBalanceHidden;
+  localStorage.setItem('butcem_hide_balance', isBalanceHidden);
+  const periodTxs = getPeriodTransactions();
+  renderSummaryCards(periodTxs);
+  if (window.lucide) window.lucide.createIcons();
+}
+
 function renderSummaryCards(periodTxs) {
   let totalIncome = 0;
   let totalExpense = 0;
@@ -222,22 +232,37 @@ function renderSummaryCards(periodTxs) {
   const totalIncomeEl = document.getElementById('totalIncomeEl');
   const totalExpenseEl = document.getElementById('totalExpenseEl');
   const netEl = document.getElementById('netBalanceEl');
+  const eyeIcon = document.getElementById('balanceEyeIcon');
   const monthlySavingsEl = document.getElementById('monthlySavingsAmountEl');
   const savingsRateEl = document.getElementById('monthlySavingsRateEl');
 
   if (totalIncomeEl) totalIncomeEl.textContent = formatMoney(totalIncome);
   if (totalExpenseEl) totalExpenseEl.textContent = formatMoney(totalExpense);
-  if (netEl) netEl.textContent = formatMoney(netBalance);
+  
+  if (netEl) {
+    if (isBalanceHidden) {
+      netEl.textContent = '•••••••• ₺';
+      netEl.classList.add('tracking-widest');
+    } else {
+      netEl.textContent = formatMoney(netBalance);
+      netEl.classList.remove('tracking-widest');
+    }
+  }
+
+  if (eyeIcon) {
+    eyeIcon.setAttribute('data-lucide', isBalanceHidden ? 'eye-off' : 'eye');
+    eyeIcon.className = `w-4 h-4 ${isBalanceHidden ? 'text-indigo-500' : 'text-zinc-400'}`;
+  }
 
   if (monthlySavingsEl) {
     if (netBalance >= 0) {
       monthlySavingsEl.textContent = `+${formatMoney(netBalance)}`;
-      monthlySavingsEl.className = 'text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400 tabular-nums';
+      monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums truncate';
       if (savingsRateEl) savingsRateEl.textContent = `(%${Math.max(0, savingsRate).toFixed(0)})`;
     } else {
       monthlySavingsEl.textContent = `-${formatMoney(Math.abs(netBalance))}`;
-      monthlySavingsEl.className = 'text-sm sm:text-base font-bold text-rose-600 dark:text-rose-400 tabular-nums';
-      if (savingsRateEl) savingsRateEl.textContent = '(Bütçe Açığı)';
+      monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 tabular-nums truncate';
+      if (savingsRateEl) savingsRateEl.textContent = '(Açık)';
     }
   }
 }
@@ -371,7 +396,10 @@ function renderSavingsGoals() {
             </div>
           </div>
 
-          <h4 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">${goal.name}</h4>
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">${goal.name}</h4>
+            <span class="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">%${goal.sharePercent || 0} Dağıtım Payı</span>
+          </div>
           <div class="text-[11px] text-zinc-400 mt-1 flex justify-between">
             <span>${formatMoney(goal.currentAmount)}</span>
             <span>${formatMoney(goal.targetAmount)}</span>
@@ -810,24 +838,27 @@ function openGoalModal(editId = null) {
   const targetInput = document.getElementById('goalTargetAmount');
   const currentInput = document.getElementById('goalCurrentAmount');
   const dateInput = document.getElementById('goalDate');
+  const shareInput = document.getElementById('goalSharePercent');
   const colorInput = document.getElementById('goalColor');
 
   if (editId) {
     const goal = window.store.data.savingsGoals.find(g => g.id === editId);
     if (!goal) return;
-    title.textContent = 'Hedefi Düzenle';
-    nameInput.value = goal.name;
-    targetInput.value = goal.targetAmount;
-    currentInput.value = goal.currentAmount;
-    dateInput.value = goal.targetDate || '';
-    colorInput.value = goal.color || '#10b981';
+    if (title) title.textContent = 'Hedefi Düzenle';
+    if (nameInput) nameInput.value = goal.name || '';
+    if (targetInput) targetInput.value = goal.targetAmount || '';
+    if (currentInput) currentInput.value = goal.currentAmount ?? 0;
+    if (dateInput) dateInput.value = goal.targetDate || '';
+    if (shareInput) shareInput.value = goal.sharePercent || '';
+    if (colorInput) colorInput.value = goal.color || '#10b981';
   } else {
-    title.textContent = 'Yeni Hedef';
-    nameInput.value = '';
-    targetInput.value = '';
-    currentInput.value = '0';
-    dateInput.value = '';
-    colorInput.value = '#10b981';
+    if (title) title.textContent = 'Yeni Hedef';
+    if (nameInput) nameInput.value = '';
+    if (targetInput) targetInput.value = '';
+    if (currentInput) currentInput.value = '0';
+    if (dateInput) dateInput.value = '';
+    if (shareInput) shareInput.value = '';
+    if (colorInput) colorInput.value = '#10b981';
   }
 
   modal.classList.remove('hidden');
@@ -839,26 +870,27 @@ function closeGoalModal() {
 }
 
 function saveGoal() {
-  const name = document.getElementById('goalName').value.trim();
-  const targetAmount = parseFloat(document.getElementById('goalTargetAmount').value);
-  const currentAmount = parseFloat(document.getElementById('goalCurrentAmount').value) || 0;
-  const targetDate = document.getElementById('goalDate').value;
-  const color = document.getElementById('goalColor').value;
-  const icon = document.getElementById('goalIcon').value || 'piggy-bank';
+  const name = document.getElementById('goalName')?.value.trim();
+  const targetAmount = parseFloat(document.getElementById('goalTargetAmount')?.value);
+  const currentAmount = parseFloat(document.getElementById('goalCurrentAmount')?.value) || 0;
+  const targetDate = document.getElementById('goalDate')?.value || '';
+  const sharePercent = parseFloat(document.getElementById('goalSharePercent')?.value) || 0;
+  const color = document.getElementById('goalColor')?.value || '#10b981';
+  const icon = 'piggy-bank';
 
   if (!name || !targetAmount || targetAmount <= 0) {
-    showToast('Geçerli bir hedef girin', 'warning');
+    showToast('Geçerli bir hedef adı ve tutar girin', 'warning');
     return;
   }
 
   if (editingGoalId) {
     window.store.updateSavingsGoal(editingGoalId, {
-      name, targetAmount, currentAmount, targetDate, color, icon
+      name, targetAmount, currentAmount, targetDate, sharePercent, color, icon
     });
     showToast('Hedef güncellendi', 'success');
   } else {
     window.store.addSavingsGoal({
-      name, targetAmount, currentAmount, targetDate, color, icon
+      name, targetAmount, currentAmount, targetDate, sharePercent, color, icon
     });
     showToast('Yeni hedef oluşturuldu', 'success');
   }
@@ -986,7 +1018,10 @@ function renderDistributeGoalsList() {
     return `
       <div class="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60">
         <div class="min-w-0 pr-2">
-          <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">${g.name}</div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">${g.name}</span>
+            <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.2 rounded">%${g.sharePercent || 0} Pay</span>
+          </div>
           <div class="text-[10px] text-zinc-400">Hedefe Kalan: ${formatMoney(remaining)}</div>
         </div>
         <div class="flex items-center gap-1 shrink-0">
@@ -1013,23 +1048,42 @@ function distributeSavingsProportionally() {
   const goals = window.store.data.savingsGoals;
   if (!inputs.length || currentDistributableSavings <= 0) return;
 
-  let totalRemaining = 0;
+  // 1. Kullanıcının Birikim sayfasında belirlediği Tasarruf Payı (%) oranlarını kontrol et
+  let totalUserPercent = 0;
   goals.forEach(g => {
-    totalRemaining += Math.max(0, g.targetAmount - g.currentAmount);
+    totalUserPercent += (parseFloat(g.sharePercent) || 0);
   });
 
-  if (totalRemaining <= 0) {
-    distributeSavingsEqually();
-    return;
+  if (totalUserPercent > 0) {
+    // Kullanıcının kendi belirlediği yüzdelere göre paylaştır
+    inputs.forEach(input => {
+      const goalId = input.dataset.goalId;
+      const goal = goals.find(g => g.id === goalId);
+      const userPct = (goal && parseFloat(goal.sharePercent)) || 0;
+      const share = Math.floor((userPct / totalUserPercent) * currentDistributableSavings);
+      input.value = share;
+    });
+    showToast('Tasarruf, belirlediğiniz pay yüzdelerine göre orantılandı 📊', 'info');
+  } else {
+    // Eğer yüzde tanımlanmamışsa kalan hedef tutarlarına göre orantıla
+    let totalRemaining = 0;
+    goals.forEach(g => {
+      totalRemaining += Math.max(0, g.targetAmount - g.currentAmount);
+    });
+
+    if (totalRemaining <= 0) {
+      distributeSavingsEqually();
+      return;
+    }
+
+    inputs.forEach(input => {
+      const goalId = input.dataset.goalId;
+      const goal = goals.find(g => g.id === goalId);
+      const rem = goal ? Math.max(0, goal.targetAmount - goal.currentAmount) : 0;
+      const share = Math.floor((rem / totalRemaining) * currentDistributableSavings);
+      input.value = share;
+    });
   }
-
-  inputs.forEach(input => {
-    const goalId = input.dataset.goalId;
-    const goal = goals.find(g => g.id === goalId);
-    const rem = goal ? Math.max(0, goal.targetAmount - goal.currentAmount) : 0;
-    const share = Math.floor((rem / totalRemaining) * currentDistributableSavings);
-    input.value = share;
-  });
 }
 
 function confirmDistributeSavings() {

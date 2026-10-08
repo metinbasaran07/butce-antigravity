@@ -113,8 +113,13 @@
         </div>
 
         <div class="my-3 flex items-center justify-between">
-          <div id="netBalanceEl" class="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">
-            0,00 ₺
+          <div class="flex items-center gap-2">
+            <div id="netBalanceEl" class="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">
+              0,00 ₺
+            </div>
+            <button id="toggleBalanceEyeBtn" onclick="toggleBalanceVisibility()" title="Bakiyeyi Gizle / Göster" class="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-850 transition">
+              <i id="balanceEyeIcon" data-lucide="eye" class="w-4 h-4"></i>
+            </button>
           </div>
           
           <!-- Hızlı Gelir / Gider Ekle Butonları (Sadece Logo/İkon) -->
@@ -572,9 +577,20 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">Hedef Tarihi</label>
+            <input type="date" id="goalDate" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+          </div>
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">Tasarruf Payı (%)</label>
+            <input type="number" id="goalSharePercent" min="0" max="100" placeholder="Örn: 40" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+          </div>
+        </div>
+
         <div>
-          <label class="block text-[11px] text-zinc-400 mb-1">Hedef Tarihi</label>
-          <input type="date" id="goalDate" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+          <label class="block text-[11px] text-zinc-400 mb-1">Renk</label>
+          <input type="color" id="goalColor" value="#10b981" class="w-full h-8 bg-transparent border-0 cursor-pointer">
         </div>
 
         <button type="submit" class="w-full py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl text-xs">

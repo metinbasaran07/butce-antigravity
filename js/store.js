@@ -26,9 +26,9 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_SAVINGS_GOALS = [
-  { id: 'goal-1', name: 'Acil Durum Fonu', targetAmount: 50000, currentAmount: 22500, targetDate: '2026-12-31', color: '#10b981', icon: 'shield-check' },
-  { id: 'goal-2', name: 'Yaz Tatili', targetAmount: 35000, currentAmount: 18000, targetDate: '2026-07-15', color: '#06b6d4', icon: 'palmtree' },
-  { id: 'goal-3', name: 'Yeni Bilgisayar', targetAmount: 45000, currentAmount: 12000, targetDate: '2026-11-20', color: '#8b5cf6', icon: 'laptop' }
+  { id: 'goal-1', name: 'Acil Durum Fonu', targetAmount: 50000, currentAmount: 22500, targetDate: '2026-12-31', sharePercent: 50, color: '#10b981', icon: 'shield-check' },
+  { id: 'goal-2', name: 'Yaz Tatili', targetAmount: 35000, currentAmount: 18000, targetDate: '2026-07-15', sharePercent: 30, color: '#06b6d4', icon: 'palmtree' },
+  { id: 'goal-3', name: 'Yeni Bilgisayar', targetAmount: 45000, currentAmount: 12000, targetDate: '2026-11-20', sharePercent: 20, color: '#8b5cf6', icon: 'laptop' }
 ];
 
 function generateDemoTransactions() {
@@ -195,6 +195,7 @@ class Store {
       targetAmount: parseFloat(goal.targetAmount) || 0,
       currentAmount: parseFloat(goal.currentAmount) || 0,
       targetDate: goal.targetDate || '',
+      sharePercent: parseFloat(goal.sharePercent) || 0,
       color: goal.color || '#10b981',
       icon: goal.icon || 'piggy-bank'
     };
@@ -210,7 +211,8 @@ class Store {
         ...this.data.savingsGoals[index],
         ...updated,
         targetAmount: parseFloat(updated.targetAmount) || 0,
-        currentAmount: parseFloat(updated.currentAmount) || 0
+        currentAmount: parseFloat(updated.currentAmount) || 0,
+        sharePercent: parseFloat(updated.sharePercent) ?? this.data.savingsGoals[index].sharePercent ?? 0
       };
       this.save();
       return true;
