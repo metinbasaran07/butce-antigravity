@@ -41,7 +41,9 @@ function renderCategoryDoughnut(transactions, currency, theme) {
     catMap[cat.name].total += t.amount;
   });
 
-  const labels = Object.keys(catMap);
+  // Tutara göre azalan sırala
+  const sortedKeys = Object.keys(catMap).sort((a, b) => catMap[b].total - catMap[a].total);
+  const labels = sortedKeys;
   const data = labels.map(l => catMap[l].total);
   const colors = labels.map(l => catMap[l].color);
 
@@ -59,32 +61,43 @@ function renderCategoryDoughnut(transactions, currency, theme) {
     ctx.classList.remove('hidden');
   }
 
+  // Modern Yatay Bar Grafiği (Apple / Finans Tarzı)
   categoryChartInstance = new Chart(ctx, {
-    type: 'doughnut',
+    type: 'bar',
     data: {
       labels: labels,
       datasets: [{
         data: data,
         backgroundColor: colors,
-        borderWidth: 0,
-        hoverOffset: 6
+        borderRadius: 8,
+        borderSkipped: false,
+        barPercentage: 0.65,
+        categoryPercentage: 0.85
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '78%',
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
+      scales: {
+        x: {
+          grid: { color: theme.gridColor, drawBorder: false },
+          ticks: {
             color: theme.textColor,
-            usePointStyle: true,
-            pointStyle: 'circle',
-            padding: 16,
-            font: { family: 'Plus Jakarta Sans', size: 12, weight: '500' }
+            font: { family: 'Plus Jakarta Sans', size: 10 },
+            callback: value => `${value.toLocaleString('tr-TR')} ${currency}`
           }
         },
+        y: {
+          grid: { display: false },
+          ticks: {
+            color: theme.textColor,
+            font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' }
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false },
         tooltip: {
           backgroundColor: theme.tooltipBg,
           titleColor: theme.tooltipText,
@@ -93,13 +106,12 @@ function renderCategoryDoughnut(transactions, currency, theme) {
           borderWidth: 1,
           padding: 10,
           cornerRadius: 12,
-          usePointStyle: true,
           callbacks: {
             label: function(context) {
               const val = context.raw || 0;
-              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const total = data.reduce((a, b) => a + b, 0);
               const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-              return ` ${val.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${currency} (%${pct})`;
+              return ` Harcama: ${val.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${currency} (%${pct})`;
             }
           }
         }

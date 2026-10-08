@@ -207,17 +207,32 @@ function renderSummaryCards(filtered) {
   });
 
   const netBalance = totalIncome - totalExpense;
-  const savingsRate = totalIncome > 0 ? Math.max(0, ((totalIncome - totalExpense) / totalIncome) * 100) : 0;
+  const savingsRate = totalIncome > 0 ? ((netBalance / totalIncome) * 100) : 0;
 
   const totalIncomeEl = document.getElementById('totalIncomeEl');
   const totalExpenseEl = document.getElementById('totalExpenseEl');
   const netEl = document.getElementById('netBalanceEl');
-  const rateEl = document.getElementById('savingsRateEl');
+  const savingsBadgeEl = document.getElementById('monthlySavingsBadgeEl');
 
   if (totalIncomeEl) totalIncomeEl.textContent = formatMoney(totalIncome);
   if (totalExpenseEl) totalExpenseEl.textContent = formatMoney(totalExpense);
   if (netEl) netEl.textContent = formatMoney(netBalance);
-  if (rateEl) rateEl.textContent = `%${savingsRate.toFixed(0)}`;
+
+  if (savingsBadgeEl) {
+    if (netBalance >= 0) {
+      savingsBadgeEl.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300';
+      savingsBadgeEl.innerHTML = `
+        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+        <span>Bu Ay Tasarruf: <strong>+${formatMoney(netBalance)}</strong> (%${Math.max(0, savingsRate).toFixed(0)})</span>
+      `;
+    } else {
+      savingsBadgeEl.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300';
+      savingsBadgeEl.innerHTML = `
+        <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+        <span>Bu Ay Bütçe Açığı: <strong>-${formatMoney(Math.abs(netBalance))}</strong></span>
+      `;
+    }
+  }
 }
 
 function renderRecentTransactions(filtered) {
@@ -388,34 +403,44 @@ function renderBudgetCategories() {
   });
 
   if (container) {
-    const budgetedCats = expenseCategories.filter(c => c.monthlyBudget && c.monthlyBudget > 0);
+    const budgetedCats = expenseCategories.filter(c => (c.monthlyBudget && c.monthlyBudget > 0) || (catSpent[c.id] && catSpent[c.id] > 0));
     if (budgetedCats.length === 0) {
       container.innerHTML = `
         <div class="py-6 text-center text-zinc-400 text-xs">
-          Belirlenmiş bütçe limiti yok.
+          Kayıtlı harcama kategorisi yok.
         </div>
       `;
     } else {
-      container.innerHTML = budgetedCats.map(cat => {
-        const spent = catSpent[cat.id] || 0;
-        const budget = cat.monthlyBudget;
-        const pct = Math.round((spent / budget) * 100);
-        const isOver = spent > budget;
+      // Kompakt 2 sütunlu mini grid kartları
+      container.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          ${budgetedCats.slice(0, 8).map(cat => {
+            const spent = catSpent[cat.id] || 0;
+            const budget = cat.monthlyBudget || 0;
+            const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+            const isOver = budget > 0 && spent > budget;
 
-        return `
-          <div class="py-2 border-b border-zinc-100 dark:border-zinc-800/80 last:border-0">
-            <div class="flex items-center justify-between text-xs mb-1.5">
-              <span class="font-medium text-zinc-800 dark:text-zinc-200">${cat.name}</span>
-              <span class="text-zinc-400 ${isOver ? 'text-rose-500 font-semibold' : ''}">
-                ${formatMoney(spent)} <span class="text-zinc-400 font-normal">/ ${formatMoney(budget)}</span>
-              </span>
-            </div>
-            <div class="w-full h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-              <div class="h-full rounded-full" style="width: ${Math.min(100, pct)}%; background-color: ${isOver ? '#f43f5e' : (pct > 80 ? '#f59e0b' : '#10b981')};"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
+            return `
+              <div class="p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40">
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${cat.color};"></span>
+                    <span class="font-medium text-zinc-800 dark:text-zinc-200 truncate text-[11px]">${cat.name}</span>
+                  </div>
+                  <span class="text-[11px] font-semibold ${isOver ? 'text-rose-500' : 'text-zinc-700 dark:text-zinc-300'} tabular-nums shrink-0">
+                    ${formatMoney(spent)}
+                  </span>
+                </div>
+                ${budget > 0 ? `
+                  <div class="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden mt-1">
+                    <div class="h-full rounded-full" style="width: ${Math.min(100, pct)}%; background-color: ${isOver ? '#f43f5e' : cat.color};"></div>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
     }
   }
 
@@ -544,6 +569,34 @@ function bindEvents() {
     });
   }
 
+  // Havale / EFT Komisyonu Ayarı
+  const feeInput = document.getElementById('settingsTransferFee');
+  if (feeInput) {
+    feeInput.value = window.store.data.settings.transferFee ?? 15.00;
+    feeInput.addEventListener('change', (e) => {
+      const val = parseFloat(e.target.value) || 0;
+      window.store.setSetting('transferFee', val);
+      updateIbanFeeUI();
+      showToast(`Havale komisyonu ${val.toFixed(2)} olarak kaydedildi`, 'success');
+    });
+  }
+
+  // Modal içindeki ödeme yöntemi ve tutar değiştiğinde IBAN komisyonunu güncelle
+  const paymentSelect = document.getElementById('txPaymentMethod');
+  if (paymentSelect) {
+    paymentSelect.addEventListener('change', () => updateIbanFeeUI());
+  }
+
+  const txAmountInput = document.getElementById('txAmount');
+  if (txAmountInput) {
+    txAmountInput.addEventListener('input', () => updateIbanFeePreview());
+  }
+
+  const ibanCheckbox = document.getElementById('txIbanFeeCheckbox');
+  if (ibanCheckbox) {
+    ibanCheckbox.addEventListener('change', () => updateIbanFeePreview());
+  }
+
   const jsonFileInput = document.getElementById('jsonFileInput');
   if (jsonFileInput) {
     jsonFileInput.addEventListener('change', (e) => {
@@ -565,8 +618,50 @@ function bindEvents() {
   }
 }
 
+// IBAN Komisyonu Görünürlük ve Metin Güncelleyici
+function updateIbanFeeUI() {
+  const isExpense = document.querySelector('input[name="txType"]:checked')?.value === 'expense';
+  const isTransfer = document.getElementById('txPaymentMethod')?.value === 'transfer';
+  const wrapper = document.getElementById('ibanFeeWrapper');
+  const feeAmountLabel = document.getElementById('ibanFeeAmountLabel');
+  
+  const fee = window.store.data.settings.transferFee ?? 15.00;
+  const currency = window.store.data.settings.currency || '₺';
+
+  if (wrapper) {
+    if (isExpense && isTransfer) {
+      wrapper.classList.remove('hidden');
+      if (feeAmountLabel) feeAmountLabel.textContent = `+${fee.toFixed(2)} ${currency}`;
+    } else {
+      wrapper.classList.add('hidden');
+      const checkbox = document.getElementById('txIbanFeeCheckbox');
+      if (checkbox) checkbox.checked = false;
+    }
+  }
+  updateIbanFeePreview();
+}
+
+function updateIbanFeePreview() {
+  const preview = document.getElementById('ibanFeePreview');
+  const checkbox = document.getElementById('txIbanFeeCheckbox');
+  const amountInput = document.getElementById('txAmount');
+  if (!preview || !checkbox || !amountInput) return;
+
+  const fee = window.store.data.settings.transferFee ?? 15.00;
+  const currency = window.store.data.settings.currency || '₺';
+  const baseAmount = parseFloat(amountInput.value) || 0;
+
+  if (checkbox.checked && baseAmount > 0) {
+    const total = baseAmount + fee;
+    preview.textContent = `Komisyon dahil toplam: ${total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${currency}`;
+    preview.classList.remove('hidden');
+  } else {
+    preview.classList.add('hidden');
+  }
+}
+
 // Modal İşlemleri
-function openTransactionModal(editId = null) {
+function openTransactionModal(editId = null, forcedType = null) {
   editingTransactionId = editId;
   const modal = document.getElementById('transactionModal');
   const title = document.getElementById('txModalTitle');
@@ -574,6 +669,7 @@ function openTransactionModal(editId = null) {
   const noteInput = document.getElementById('txNote');
   const dateInput = document.getElementById('txDate');
   const paymentSelect = document.getElementById('txPaymentMethod');
+  const ibanCheckbox = document.getElementById('txIbanFeeCheckbox');
 
   if (editId) {
     const tx = window.store.data.transactions.find(t => t.id === editId);
@@ -583,22 +679,27 @@ function openTransactionModal(editId = null) {
     noteInput.value = tx.note || '';
     dateInput.value = tx.date;
     paymentSelect.value = tx.paymentMethod || 'card';
+    if (ibanCheckbox) ibanCheckbox.checked = Boolean(tx.hasTransferFee);
     
     const typeRadio = document.querySelector(`input[name="txType"][value="${tx.type}"]`);
     if (typeRadio) typeRadio.checked = true;
     populateCategorySelects(tx.type);
     document.getElementById('txCategory').value = tx.categoryId;
   } else {
-    title.textContent = 'Yeni İşlem';
+    const targetType = forcedType || 'expense';
+    title.textContent = targetType === 'income' ? 'Gelir Ekle' : 'Gider Ekle';
     amountInput.value = '';
     noteInput.value = '';
     dateInput.value = new Date().toISOString().split('T')[0];
     paymentSelect.value = 'card';
+    if (ibanCheckbox) ibanCheckbox.checked = false;
     
-    document.querySelector('input[name="txType"][value="expense"]').checked = true;
-    populateCategorySelects('expense');
+    const typeRadio = document.querySelector(`input[name="txType"][value="${targetType}"]`);
+    if (typeRadio) typeRadio.checked = true;
+    populateCategorySelects(targetType);
   }
 
+  updateIbanFeeUI();
   modal.classList.remove('hidden');
   setTimeout(() => amountInput.focus(), 100);
 }
@@ -609,8 +710,8 @@ function closeTransactionModal() {
 }
 
 function saveTransaction() {
-  const amount = parseFloat(document.getElementById('txAmount').value);
-  if (!amount || amount <= 0) {
+  const baseAmount = parseFloat(document.getElementById('txAmount').value);
+  if (!baseAmount || baseAmount <= 0) {
     showToast('Lütfen geçerli bir tutar girin', 'warning');
     return;
   }
@@ -618,19 +719,27 @@ function saveTransaction() {
   const type = document.querySelector('input[name="txType"]:checked').value;
   const categoryId = document.getElementById('txCategory').value;
   const date = document.getElementById('txDate').value || new Date().toISOString().split('T')[0];
-  const note = document.getElementById('txNote').value;
+  let note = document.getElementById('txNote').value.trim();
   const paymentMethod = document.getElementById('txPaymentMethod').value;
+  const ibanCheckbox = document.getElementById('txIbanFeeCheckbox');
+  const hasTransferFee = Boolean(type === 'expense' && paymentMethod === 'transfer' && ibanCheckbox && ibanCheckbox.checked);
+  const feeAmount = hasTransferFee ? (window.store.data.settings.transferFee ?? 15.00) : 0;
+  
+  const finalAmount = baseAmount + feeAmount;
+  if (hasTransferFee && !note.includes('Komisyon')) {
+    note = note ? `${note} (+${feeAmount} ₺ Havale Komisyonu)` : `+${feeAmount} ₺ Havale Komisyonu Dahil`;
+  }
 
   if (editingTransactionId) {
     window.store.updateTransaction(editingTransactionId, {
-      amount, type, categoryId, date, note, paymentMethod
+      amount: finalAmount, type, categoryId, date, note, paymentMethod, hasTransferFee, transferFeeAmount: feeAmount
     });
     showToast('İşlem güncellendi', 'success');
   } else {
     window.store.addTransaction({
-      amount, type, categoryId, date, note, paymentMethod
+      amount: finalAmount, type, categoryId, date, note, paymentMethod, hasTransferFee, transferFeeAmount: feeAmount
     });
-    showToast('İşlem eklendi', 'success');
+    showToast(hasTransferFee ? `İşlem ve ${feeAmount} ₺ komisyon kaydedildi` : 'İşlem eklendi', 'success');
   }
 
   closeTransactionModal();

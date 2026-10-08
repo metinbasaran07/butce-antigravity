@@ -60,9 +60,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
       <!-- Logo -->
       <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchTab('dashboard')">
-        <div class="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center font-bold text-sm tracking-tighter">
-          B
-        </div>
+        <img src="icons/logo.svg" alt="Bütçem Logo" class="w-7 h-7 rounded-lg shadow-sm">
         <span class="text-sm font-bold tracking-tight">bütçem</span>
       </div>
 
@@ -109,15 +107,29 @@
     <section id="tab-dashboard" class="tab-pane space-y-6">
       
       <!-- Ana Bakiye ve Özet Kartı (Apple Wallet / Revolut Stili) -->
-      <div class="card-clean rounded-3xl p-6 sm:p-8 flex flex-col justify-between">
-        <div class="flex items-center justify-between text-xs text-zinc-400 uppercase tracking-wider font-semibold">
-          <span>Net Bakiye</span>
-          <span id="savingsRateEl" class="text-zinc-500 dark:text-zinc-400 font-normal normal-case">Tasarruf: %0</span>
+      <div class="card-clean rounded-3xl p-6 sm:p-7 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-zinc-400 font-semibold">
+          <span class="uppercase tracking-wider">Net Bakiye</span>
+          <span id="monthlySavingsBadgeEl" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+            <!-- Dinamik doldurulur -->
+          </span>
         </div>
 
-        <div class="my-4">
+        <div class="my-3 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div id="netBalanceEl" class="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">
             0,00 ₺
+          </div>
+          
+          <!-- Hızlı Gelir / Gider Ekle Butonları -->
+          <div class="flex items-center gap-2">
+            <button onclick="openTransactionModal(null, 'income')" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Gelir Ekle</span>
+            </button>
+            <button onclick="openTransactionModal(null, 'expense')" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+              <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+              <span>Gider Ekle</span>
+            </button>
           </div>
         </div>
 
@@ -167,21 +179,22 @@
           </div>
         </div>
 
-        <!-- Bütçe Limitleri -->
+        <!-- Kategoriler -->
         <div class="card-clean rounded-2xl p-5 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-3">
-              <h3 class="text-xs font-bold text-zinc-800 dark:text-zinc-200">Bütçe Limitleri</h3>
+              <h3 class="text-xs font-bold text-zinc-800 dark:text-zinc-200">Kategoriler</h3>
               <button onclick="switchTab('categories')" class="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">
-                Düzenle
+                Tümü →
               </button>
             </div>
-            <div id="budgetLimitList" class="space-y-1">
+            <div id="budgetLimitList">
               <!-- Dinamik doldurulur -->
             </div>
           </div>
-          <div class="pt-3 text-[11px] text-zinc-400">
-            Harcama limitlerinizi aşmamak için düzenli kontrol edin.
+          <div class="pt-3 text-[11px] text-zinc-400 flex items-center justify-between">
+            <span>Dönem içi harcama takibi</span>
+            <button onclick="openCategoryModal()" class="font-semibold text-zinc-700 dark:text-zinc-300 hover:underline">+ Yeni</button>
           </div>
         </div>
       </div>
@@ -316,6 +329,18 @@
         </select>
       </div>
 
+      <!-- IBAN / Havale Komisyonu Ayarı -->
+      <div class="card-clean p-4 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">IBAN / Havale Komisyonu</div>
+          <div class="text-[11px] text-zinc-400">Havale giderlerinde önerilen varsayılan komisyon tutarı</div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <input type="number" step="0.5" id="settingsTransferFee" class="w-20 bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-semibold text-right text-zinc-900 dark:text-zinc-100 focus:outline-none">
+          <span class="text-xs font-semibold text-zinc-500">₺</span>
+        </div>
+      </div>
+
       <!-- PWA Yükleme Butonu -->
       <div class="card-clean p-4 rounded-2xl space-y-2">
         <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Ana Ekrana Ekle (PWA)</div>
@@ -433,9 +458,18 @@
             <select id="txPaymentMethod" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
               <option value="card">Kart</option>
               <option value="cash">Nakit</option>
-              <option value="transfer">Havale</option>
+              <option value="transfer">Havale / EFT</option>
             </select>
           </div>
+        </div>
+
+        <!-- IBAN Komisyonu Checkbox (Havale seçildiğinde beliren alan) -->
+        <div id="ibanFeeWrapper" class="hidden p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 transition-all">
+          <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-zinc-700 dark:text-zinc-300">
+            <input type="checkbox" id="txIbanFeeCheckbox" class="rounded text-zinc-900 dark:text-white focus:ring-0 cursor-pointer">
+            <span>IBAN / Havale Komisyonu Ekle (<strong id="ibanFeeAmountLabel" class="text-zinc-900 dark:text-zinc-100">+15.00 ₺</strong>)</span>
+          </label>
+          <div id="ibanFeePreview" class="hidden text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1 pl-5"></div>
         </div>
 
         <div>

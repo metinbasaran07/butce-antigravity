@@ -67,6 +67,7 @@ class Store {
           settings: {
             currency: '₺',
             theme: 'dark',
+            transferFee: 15.00,
             selectedMonth: this.getCurrentMonthString(),
             ...(parsed.settings || {})
           }
@@ -84,6 +85,7 @@ class Store {
       settings: {
         currency: '₺',
         theme: 'dark',
+        transferFee: 15.00,
         selectedMonth: this.getCurrentMonthString()
       }
     };
@@ -112,6 +114,8 @@ class Store {
       date: tx.date || new Date().toISOString().split('T')[0],
       note: (tx.note || '').trim(),
       paymentMethod: tx.paymentMethod || 'card',
+      hasTransferFee: Boolean(tx.hasTransferFee),
+      transferFeeAmount: parseFloat(tx.transferFeeAmount) || 0,
       createdAt: new Date().toISOString()
     };
     this.data.transactions.unshift(newTx);
@@ -125,7 +129,9 @@ class Store {
       this.data.transactions[index] = {
         ...this.data.transactions[index],
         ...updated,
-        amount: parseFloat(updated.amount) || 0
+        amount: parseFloat(updated.amount) || 0,
+        hasTransferFee: Boolean(updated.hasTransferFee),
+        transferFeeAmount: parseFloat(updated.transferFeeAmount) || 0
       };
       this.save();
       return true;
