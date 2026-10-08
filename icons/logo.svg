@@ -1,8 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <!-- Minimalist Geometric Finance Logo -->
+  <!-- Minimalist Sleek Wallet Icon -->
   <rect width="100" height="100" rx="28" fill="#09090b"/>
-  <path d="M26 34C26 29.5817 29.5817 26 34 26H66C70.4183 26 74 29.5817 74 34V66C74 70.4183 70.4183 74 66 74H34C29.5817 74 26 70.4183 26 66V34Z" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
-  <circle cx="50" cy="50" r="22" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-dasharray="85 45"/>
-  <path d="M42 50L48 56L60 44" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="68" cy="32" r="3.5" fill="#10b981"/>
+  <!-- Wallet Body -->
+  <rect x="22" y="30" width="56" height="42" rx="10" stroke="#f4f4f5" stroke-width="4.5" fill="none"/>
+  <!-- Wallet Flap -->
+  <path d="M22 41C22 36.5 25.5 33 30 33H70C74.5 33 78 36.5 78 41V45H22V41Z" fill="#18181b" stroke="#f4f4f5" stroke-width="2.5"/>
+  <!-- Wallet Pocket & Clasp -->
+  <rect x="56" y="44" width="22" height="14" rx="6" fill="#10b981"/>
+  <circle cx="64" cy="51" r="2.5" fill="#ffffff"/>
+  <!-- Inner Card Hint -->
+  <path d="M32 25H64" stroke="#71717a" stroke-width="3" stroke-linecap="round"/>
 </svg>

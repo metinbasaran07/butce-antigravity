@@ -156,16 +156,25 @@ function switchTab(tabName) {
   renderApp();
 }
 
-function getFilteredTransactions() {
+// Yalnızca seçili döneme (aya) göre işlemler - Bakiye ve Grafikler bunu kullanır
+function getPeriodTransactions() {
   const selectedMonth = window.store.data.settings.selectedMonth;
-  const searchInput = document.getElementById('txSearchInput')?.value?.toLowerCase() || '';
-  const filterType = document.getElementById('filterType')?.value || 'all';
-  const filterCat = document.getElementById('filterCategory')?.value || 'all';
-
   return window.store.data.transactions.filter(t => {
     if (selectedMonth && selectedMonth !== 'all') {
       if (!t.date || !t.date.startsWith(selectedMonth)) return false;
     }
+    return true;
+  });
+}
+
+// Filtrelenmiş işlemler - SADECE İşlemler listesi araması ve kategori filtresi için kullanılır
+function getFilteredTransactions() {
+  const periodTransactions = getPeriodTransactions();
+  const searchInput = document.getElementById('txSearchInput')?.value?.toLowerCase() || '';
+  const filterType = document.getElementById('filterType')?.value || 'all';
+  const filterCat = document.getElementById('filterCategory')?.value || 'all';
+
+  return periodTransactions.filter(t => {
     if (filterType !== 'all' && t.type !== filterType) return false;
     if (filterCat !== 'all' && t.categoryId !== filterCat) return false;
 
@@ -182,26 +191,27 @@ function getFilteredTransactions() {
 }
 
 function renderApp() {
-  const filtered = getFilteredTransactions();
+  const periodTxs = getPeriodTransactions();
+  const filteredTxs = getFilteredTransactions();
   
-  renderSummaryCards(filtered);
-  renderRecentTransactions(filtered);
-  renderTransactionsList(filtered);
+  // Bakiye ve Özet kartları HER ZAMAN o dönemin genel toplamını gösterir (filtrelerden etkilenmez!)
+  renderSummaryCards(periodTxs);
+  renderRecentTransactions(periodTxs);
+  renderTransactionsList(filteredTxs);
   renderSavingsGoals();
-  renderBudgetCategories();
-  renderFinancialHealth(filtered);
-  renderCharts(filtered);
+  renderBudgetCategories(periodTxs);
+  renderCharts(periodTxs);
 
   if (window.lucide) {
     window.lucide.createIcons();
   }
 }
 
-function renderSummaryCards(filtered) {
+function renderSummaryCards(periodTxs) {
   let totalIncome = 0;
   let totalExpense = 0;
 
-  filtered.forEach(t => {
+  periodTxs.forEach(t => {
     if (t.type === 'income') totalIncome += t.amount;
     if (t.type === 'expense') totalExpense += t.amount;
   });
@@ -212,25 +222,22 @@ function renderSummaryCards(filtered) {
   const totalIncomeEl = document.getElementById('totalIncomeEl');
   const totalExpenseEl = document.getElementById('totalExpenseEl');
   const netEl = document.getElementById('netBalanceEl');
-  const savingsBadgeEl = document.getElementById('monthlySavingsBadgeEl');
+  const monthlySavingsEl = document.getElementById('monthlySavingsAmountEl');
+  const savingsRateEl = document.getElementById('monthlySavingsRateEl');
 
   if (totalIncomeEl) totalIncomeEl.textContent = formatMoney(totalIncome);
   if (totalExpenseEl) totalExpenseEl.textContent = formatMoney(totalExpense);
   if (netEl) netEl.textContent = formatMoney(netBalance);
 
-  if (savingsBadgeEl) {
+  if (monthlySavingsEl) {
     if (netBalance >= 0) {
-      savingsBadgeEl.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300';
-      savingsBadgeEl.innerHTML = `
-        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
-        <span>Bu Ay Tasarruf: <strong>+${formatMoney(netBalance)}</strong> (%${Math.max(0, savingsRate).toFixed(0)})</span>
-      `;
+      monthlySavingsEl.textContent = `+${formatMoney(netBalance)}`;
+      monthlySavingsEl.className = 'text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400 tabular-nums';
+      if (savingsRateEl) savingsRateEl.textContent = `(%${Math.max(0, savingsRate).toFixed(0)})`;
     } else {
-      savingsBadgeEl.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300';
-      savingsBadgeEl.innerHTML = `
-        <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
-        <span>Bu Ay Bütçe Açığı: <strong>-${formatMoney(Math.abs(netBalance))}</strong></span>
-      `;
+      monthlySavingsEl.textContent = `-${formatMoney(Math.abs(netBalance))}`;
+      monthlySavingsEl.className = 'text-sm sm:text-base font-bold text-rose-600 dark:text-rose-400 tabular-nums';
+      if (savingsRateEl) savingsRateEl.textContent = '(Bütçe Açığı)';
     }
   }
 }
@@ -925,5 +932,126 @@ function loadSampleData() {
     window.store.loadDemoData();
     showToast('Örnek veriler yüklendi', 'success');
     renderApp();
+  }
+}
+
+// --- TASARRUF DAĞITIM SİSTEMİ ---
+let currentDistributableSavings = 0;
+
+function openDistributeSavingsModal() {
+  const periodTxs = getPeriodTransactions();
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  periodTxs.forEach(t => {
+    if (t.type === 'income') totalIncome += t.amount;
+    if (t.type === 'expense') totalExpense += t.amount;
+  });
+
+  const netSavings = totalIncome - totalExpense;
+  if (netSavings <= 0) {
+    showToast('Bu ay için dağıtılabilecek pozitif bir tasarruf miktarı bulunmuyor.', 'warning');
+    return;
+  }
+
+  const goals = window.store.data.savingsGoals;
+  if (!goals || goals.length === 0) {
+    showToast('Önce birikim hedefi oluşturmalısınız.', 'info');
+    switchTab('savings');
+    return;
+  }
+
+  currentDistributableSavings = netSavings;
+  const modal = document.getElementById('distributeSavingsModal');
+  const totalLabel = document.getElementById('distributeTotalSavingsLabel');
+  if (totalLabel) totalLabel.textContent = formatMoney(netSavings);
+
+  renderDistributeGoalsList();
+  distributeSavingsEqually();
+  modal.classList.remove('hidden');
+}
+
+function closeDistributeSavingsModal() {
+  const modal = document.getElementById('distributeSavingsModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function renderDistributeGoalsList() {
+  const container = document.getElementById('distributeGoalsList');
+  if (!container) return;
+
+  const goals = window.store.data.savingsGoals;
+  container.innerHTML = goals.map(g => {
+    const remaining = Math.max(0, g.targetAmount - g.currentAmount);
+    return `
+      <div class="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60">
+        <div class="min-w-0 pr-2">
+          <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">${g.name}</div>
+          <div class="text-[10px] text-zinc-400">Hedefe Kalan: ${formatMoney(remaining)}</div>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <input type="number" step="1" data-goal-id="${g.id}" class="distribute-goal-input w-24 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 text-xs font-bold text-right text-zinc-900 dark:text-zinc-100 focus:outline-none" value="0">
+          <span class="text-xs text-zinc-500 font-semibold">${window.store.data.settings.currency || '₺'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function distributeSavingsEqually() {
+  const inputs = document.querySelectorAll('.distribute-goal-input');
+  if (!inputs.length || currentDistributableSavings <= 0) return;
+
+  const perGoal = Math.floor(currentDistributableSavings / inputs.length);
+  inputs.forEach(input => {
+    input.value = perGoal;
+  });
+}
+
+function distributeSavingsProportionally() {
+  const inputs = document.querySelectorAll('.distribute-goal-input');
+  const goals = window.store.data.savingsGoals;
+  if (!inputs.length || currentDistributableSavings <= 0) return;
+
+  let totalRemaining = 0;
+  goals.forEach(g => {
+    totalRemaining += Math.max(0, g.targetAmount - g.currentAmount);
+  });
+
+  if (totalRemaining <= 0) {
+    distributeSavingsEqually();
+    return;
+  }
+
+  inputs.forEach(input => {
+    const goalId = input.dataset.goalId;
+    const goal = goals.find(g => g.id === goalId);
+    const rem = goal ? Math.max(0, goal.targetAmount - goal.currentAmount) : 0;
+    const share = Math.floor((rem / totalRemaining) * currentDistributableSavings);
+    input.value = share;
+  });
+}
+
+function confirmDistributeSavings() {
+  const inputs = document.querySelectorAll('.distribute-goal-input');
+  let allocatedTotal = 0;
+  let count = 0;
+
+  inputs.forEach(input => {
+    const goalId = input.dataset.goalId;
+    const amount = parseFloat(input.value) || 0;
+    if (amount > 0) {
+      window.store.depositToSavingsGoal(goalId, amount);
+      allocatedTotal += amount;
+      count++;
+    }
+  });
+
+  if (allocatedTotal > 0) {
+    showToast(`${formatMoney(allocatedTotal)} birikim hedeflerinize başarıyla aktarıldı! 🎯`, 'success');
+    closeDistributeSavingsModal();
+    renderApp();
+  } else {
+    showToast('Lütfen hedeflere eklenecek bir tutar girin.', 'warning');
   }
 }

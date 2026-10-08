@@ -61,7 +61,7 @@
       <!-- Logo -->
       <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchTab('dashboard')">
         <img src="icons/logo.svg" alt="Bütçem Logo" class="w-7 h-7 rounded-lg shadow-sm">
-        <span class="text-sm font-bold tracking-tight">bütçem</span>
+        <span class="text-sm font-bold tracking-tight">Bütçem</span>
       </div>
 
       <!-- Masaüstü Sade Sekmeler -->
@@ -110,55 +110,62 @@
       <div class="card-clean rounded-3xl p-6 sm:p-7 flex flex-col justify-between">
         <div class="flex items-center justify-between text-xs text-zinc-400 font-semibold">
           <span class="uppercase tracking-wider">Net Bakiye</span>
-          <span id="monthlySavingsBadgeEl" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-            <!-- Dinamik doldurulur -->
-          </span>
         </div>
 
-        <div class="my-3 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div class="my-3 flex items-center justify-between">
           <div id="netBalanceEl" class="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">
             0,00 ₺
           </div>
           
-          <!-- Hızlı Gelir / Gider Ekle Butonları -->
+          <!-- Hızlı Gelir / Gider Ekle Butonları (Sadece Logo/İkon) -->
           <div class="flex items-center gap-2">
-            <button onclick="openTransactionModal(null, 'income')" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              <span>Gelir Ekle</span>
+            <button onclick="openTransactionModal(null, 'income')" title="Gelir Ekle" class="w-9 h-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition active:scale-95 shadow-sm">
+              <i data-lucide="plus" class="w-5 h-5 stroke-[2.5]"></i>
             </button>
-            <button onclick="openTransactionModal(null, 'expense')" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
-              <i data-lucide="minus" class="w-3.5 h-3.5"></i>
-              <span>Gider Ekle</span>
+            <button onclick="openTransactionModal(null, 'expense')" title="Gider Ekle" class="w-9 h-9 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center transition active:scale-95 shadow-sm">
+              <i data-lucide="minus" class="w-5 h-5 stroke-[2.5]"></i>
             </button>
           </div>
         </div>
 
-        <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800/80 grid grid-cols-2 gap-4">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
+        <!-- 3 Sütunlu Metrik Alanı: Toplam Gelir, Toplam Gider, Aylık Tasarruf -->
+        <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800/80 grid grid-cols-3 gap-2 sm:gap-4">
+          <!-- Toplam Gelir -->
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+              <i data-lucide="arrow-down-left" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
             </div>
-            <div>
-              <div class="text-[11px] text-zinc-400 font-medium">Toplam Gelir</div>
-              <div id="totalIncomeEl" class="text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">0,00 ₺</div>
+            <div class="min-w-0">
+              <div class="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate">Toplam Gelir</div>
+              <div id="totalIncomeEl" class="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums truncate">0,00 ₺</div>
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center">
-              <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+          <!-- Toplam Gider -->
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
+              <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
             </div>
-            <div>
-              <div class="text-[11px] text-zinc-400 font-medium">Toplam Gider</div>
-              <div id="totalExpenseEl" class="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">0,00 ₺</div>
+            <div class="min-w-0">
+              <div class="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate">Toplam Gider</div>
+              <div id="totalExpenseEl" class="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">0,00 ₺</div>
+            </div>
+          </div>
+
+          <!-- Tasarruf Bölümü (Toplam Giderin yanına taşındı ve dağıtım butonu eklendi) -->
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+              <i data-lucide="piggy-bank" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate">Tasarruf <span id="monthlySavingsRateEl" class="text-[9px] text-zinc-400 font-normal"></span></span>
+                <button onclick="openDistributeSavingsModal()" title="Birikim Hedeflerine Dağıt" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">Dağıt</button>
+              </div>
+              <div id="monthlySavingsAmountEl" class="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums truncate">0,00 ₺</div>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Sade Finansal Durum Notu -->
-      <div id="financialHealthCard" class="card-clean rounded-2xl px-4 py-3">
-        <!-- Dinamik render edilir -->
       </div>
 
       <!-- Harcama Dağılımı & Bütçe Limitleri -->
@@ -634,6 +641,51 @@
       <button onclick="closeBrowserInstallHelpModal()" class="w-full mt-3 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold">
         Anladım
       </button>
+    </div>
+  </div>
+
+  <!-- 6. TASARRUFU HEDEFLERE DAĞITMA MODALI -->
+  <div id="distributeSavingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-sm rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Tasarrufu Hedeflere Dağıt</h3>
+          <p class="text-[11px] text-zinc-400">Bu ayki net tasarrufunuzu birikim kumbaralarınıza aktarın.</p>
+        </div>
+        <button onclick="closeDistributeSavingsModal()" class="p-1 text-zinc-400 hover:text-zinc-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Toplam Tasarruf Rozeti -->
+      <div class="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-800/40 flex items-center justify-between my-2">
+        <span class="text-xs font-medium text-emerald-800 dark:text-emerald-200">Dağıtılacak Tasarruf</span>
+        <span id="distributeTotalSavingsLabel" class="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">0,00 ₺</span>
+      </div>
+
+      <!-- Hızlı Bölüşüm Butonları -->
+      <div class="flex gap-2 my-2.5">
+        <button type="button" onclick="distributeSavingsEqually()" class="flex-1 py-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl text-[11px] font-semibold transition text-center">
+          ⚡ Eşit Dağıt
+        </button>
+        <button type="button" onclick="distributeSavingsProportionally()" class="flex-1 py-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl text-[11px] font-semibold transition text-center">
+          📊 Orantılı Dağıt
+        </button>
+      </div>
+
+      <!-- Hedefler Listesi -->
+      <div id="distributeGoalsList" class="space-y-2 my-3 max-h-56 overflow-y-auto pr-0.5">
+        <!-- Dinamik doldurulur -->
+      </div>
+
+      <div class="pt-2 flex gap-2">
+        <button type="button" onclick="closeDistributeSavingsModal()" class="flex-1 py-2 text-xs font-semibold text-zinc-500 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          Vazgeç
+        </button>
+        <button type="button" onclick="confirmDistributeSavings()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-md transition">
+          Dağıtımı Tamamla
+        </button>
+      </div>
     </div>
   </div>
 
