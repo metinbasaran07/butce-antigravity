@@ -1,5 +1,5 @@
 /**
- * Bütçem - Chart.js Entegrasyonu
+ * Bütçem - Minimalist Chart.js Yapılandırması
  */
 
 let categoryChartInstance = null;
@@ -10,10 +10,10 @@ function getChartThemeColors() {
   const isDark = document.documentElement.classList.contains('dark');
   return {
     textColor: isDark ? '#94a3b8' : '#64748b',
-    gridColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
-    tooltipBg: isDark ? '#1e293b' : '#ffffff',
+    gridColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
+    tooltipBg: isDark ? '#0f172a' : '#ffffff',
     tooltipText: isDark ? '#f8fafc' : '#0f172a',
-    borderColor: isDark ? '#334155' : '#e2e8f0'
+    borderColor: isDark ? '#1e293b' : '#e2e8f0'
   };
 }
 
@@ -21,13 +21,8 @@ function updateCharts(filteredTransactions) {
   const currency = window.store.data.settings.currency || '₺';
   const theme = getChartThemeColors();
 
-  // 1. Kategori Bazlı Gider Dağılımı (Doughnut Chart)
   renderCategoryDoughnut(filteredTransactions, currency, theme);
-
-  // 2. Aylık Gelir & Gider Karşılaştırması (Bar Chart)
   renderMonthlyBarChart(currency, theme);
-
-  // 3. Günlük Harcama Trendi (Line Chart)
   renderDailyTrendChart(filteredTransactions, currency, theme);
 }
 
@@ -71,15 +66,14 @@ function renderCategoryDoughnut(transactions, currency, theme) {
       datasets: [{
         data: data,
         backgroundColor: colors,
-        borderWidth: 2,
-        borderColor: theme.tooltipBg,
-        hoverOffset: 8
+        borderWidth: 0,
+        hoverOffset: 6
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '72%',
+      cutout: '78%',
       plugins: {
         legend: {
           position: 'bottom',
@@ -87,8 +81,8 @@ function renderCategoryDoughnut(transactions, currency, theme) {
             color: theme.textColor,
             usePointStyle: true,
             pointStyle: 'circle',
-            padding: 14,
-            font: { family: 'Plus Jakarta Sans', size: 12 }
+            padding: 16,
+            font: { family: 'Plus Jakarta Sans', size: 12, weight: '500' }
           }
         },
         tooltip: {
@@ -97,8 +91,8 @@ function renderCategoryDoughnut(transactions, currency, theme) {
           bodyColor: theme.tooltipText,
           borderColor: theme.borderColor,
           borderWidth: 1,
-          padding: 12,
-          boxPadding: 6,
+          padding: 10,
+          cornerRadius: 12,
           usePointStyle: true,
           callbacks: {
             label: function(context) {
@@ -118,7 +112,6 @@ function renderMonthlyBarChart(currency, theme) {
   const ctx = document.getElementById('monthlyBarChart');
   if (!ctx) return;
 
-  // Son 6 ayın listesi
   const months = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -156,18 +149,18 @@ function renderMonthlyBarChart(currency, theme) {
         {
           label: 'Gelir',
           data: incomeData,
-          backgroundColor: 'rgba(16, 185, 129, 0.85)',
-          borderRadius: 6,
-          barPercentage: 0.6,
-          categoryPercentage: 0.7
+          backgroundColor: '#10b981',
+          borderRadius: 8,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
         },
         {
           label: 'Gider',
           data: expenseData,
-          backgroundColor: 'rgba(244, 63, 94, 0.85)',
-          borderRadius: 6,
-          barPercentage: 0.6,
-          categoryPercentage: 0.7
+          backgroundColor: '#f43f5e',
+          borderRadius: 8,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
         }
       ]
     },
@@ -177,13 +170,13 @@ function renderMonthlyBarChart(currency, theme) {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: theme.textColor, font: { family: 'Plus Jakarta Sans' } }
+          ticks: { color: theme.textColor, font: { family: 'Plus Jakarta Sans', size: 12 } }
         },
         y: {
-          grid: { color: theme.gridColor },
+          grid: { color: theme.gridColor, drawBorder: false },
           ticks: {
             color: theme.textColor,
-            font: { family: 'Plus Jakarta Sans' },
+            font: { family: 'Plus Jakarta Sans', size: 11 },
             callback: value => `${value.toLocaleString('tr-TR')} ${currency}`
           }
         }
@@ -205,7 +198,8 @@ function renderMonthlyBarChart(currency, theme) {
           bodyColor: theme.tooltipText,
           borderColor: theme.borderColor,
           borderWidth: 1,
-          padding: 12,
+          padding: 10,
+          cornerRadius: 12,
           callbacks: {
             label: function(context) {
               return ` ${context.dataset.label}: ${context.raw.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${currency}`;
@@ -222,8 +216,6 @@ function renderDailyTrendChart(transactions, currency, theme) {
   if (!ctx) return;
 
   const expenses = transactions.filter(t => t.type === 'expense');
-  
-  // Günlere göre grupla (son 14 gün veya seçili aydaki günler)
   const dayMap = {};
   expenses.forEach(t => {
     if (!dayMap[t.date]) dayMap[t.date] = 0;
@@ -248,13 +240,15 @@ function renderDailyTrendChart(transactions, currency, theme) {
       datasets: [{
         label: 'Günlük Gider',
         data: data.length ? data : [0],
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99, 102, 241, 0.12)',
+        borderColor: '#0f172a',
+        darkBorderColor: '#f8fafc',
+        borderWidth: 2,
+        backgroundColor: 'rgba(15, 23, 42, 0.03)',
         fill: true,
-        tension: 0.35,
-        pointBackgroundColor: '#6366f1',
-        pointRadius: 4,
-        pointHoverRadius: 6
+        tension: 0.3,
+        pointBackgroundColor: '#0f172a',
+        pointRadius: 3,
+        pointHoverRadius: 5
       }]
     },
     options: {
@@ -266,7 +260,7 @@ function renderDailyTrendChart(transactions, currency, theme) {
           ticks: { color: theme.textColor, font: { family: 'Plus Jakarta Sans', size: 11 } }
         },
         y: {
-          grid: { color: theme.gridColor },
+          grid: { color: theme.gridColor, drawBorder: false },
           ticks: {
             color: theme.textColor,
             font: { family: 'Plus Jakarta Sans', size: 11 },
@@ -283,6 +277,7 @@ function renderDailyTrendChart(transactions, currency, theme) {
           borderColor: theme.borderColor,
           borderWidth: 1,
           padding: 10,
+          cornerRadius: 12,
           callbacks: {
             label: function(context) {
               return ` Harcama: ${context.raw.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${currency}`;
