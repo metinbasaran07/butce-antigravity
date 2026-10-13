@@ -30,8 +30,26 @@ document.addEventListener('DOMContentLoaded', () => {
   renderApp();
   
   const params = new URLSearchParams(window.location.search);
-  if (params.get('action') === 'new-transaction') {
+  const action = params.get('action');
+  const type = params.get('type');
+  const amount = params.get('amount');
+  const note = params.get('note');
+  const category = params.get('category') || params.get('categoryId');
+
+  if (action === 'income' || type === 'income') {
+    openTransactionModal(null, 'income');
+    if (amount) { const el = document.getElementById('txAmount'); if (el) el.value = amount; }
+    if (note) { const el = document.getElementById('txNote'); if (el) el.value = note; }
+    if (category) { const el = document.getElementById('txCategory'); if (el) el.value = category; }
+  } else if (action === 'expense' || type === 'expense') {
+    openTransactionModal(null, 'expense');
+    if (amount) { const el = document.getElementById('txAmount'); if (el) el.value = amount; }
+    if (note) { const el = document.getElementById('txNote'); if (el) el.value = note; }
+    if (category) { const el = document.getElementById('txCategory'); if (el) el.value = category; }
+  } else if (action === 'new-transaction' || action === 'add') {
     openTransactionModal();
+    if (amount) { const el = document.getElementById('txAmount'); if (el) el.value = amount; }
+    if (note) { const el = document.getElementById('txNote'); if (el) el.value = note; }
   } else if (params.get('tab')) {
     switchTab(params.get('tab'));
   }
@@ -229,41 +247,95 @@ function renderSummaryCards(periodTxs) {
   const netBalance = totalIncome - totalExpense;
   const savingsRate = totalIncome > 0 ? ((netBalance / totalIncome) * 100) : 0;
 
+  const currentMonthKey = window.store.data.settings.selectedMonth === 'all' 
+    ? window.store.getCurrentMonthString() 
+    : window.store.data.settings.selectedMonth;
+  const distributed = window.store.getDistributedSavings(currentMonthKey);
+  const remainingSavings = Math.max(0, netBalance - distributed);
+
   const totalIncomeEl = document.getElementById('totalIncomeEl');
   const totalExpenseEl = document.getElementById('totalExpenseEl');
   const netEl = document.getElementById('netBalanceEl');
   const eyeIcon = document.getElementById('balanceEyeIcon');
   const monthlySavingsEl = document.getElementById('monthlySavingsAmountEl');
+  const monthlySavingsDistributedEl = document.getElementById('monthlySavingsDistributedEl');
   const savingsRateEl = document.getElementById('monthlySavingsRateEl');
+  const openDistributeBtn = document.getElementById('btnOpenDistributeModal');
 
-  if (totalIncomeEl) totalIncomeEl.textContent = formatMoney(totalIncome);
-  if (totalExpenseEl) totalExpenseEl.textContent = formatMoney(totalExpense);
-  
-  if (netEl) {
-    if (isBalanceHidden) {
+  if (isBalanceHidden) {
+    if (totalIncomeEl) {
+      totalIncomeEl.textContent = '•••••••• ₺';
+      totalIncomeEl.classList.add('tracking-widest');
+    }
+    if (totalExpenseEl) {
+      totalExpenseEl.textContent = '•••••••• ₺';
+      totalExpenseEl.classList.add('tracking-widest');
+    }
+    if (netEl) {
       netEl.textContent = '•••••••• ₺';
       netEl.classList.add('tracking-widest');
-    } else {
+    }
+    if (monthlySavingsEl) {
+      monthlySavingsEl.textContent = '•••••••• ₺';
+      monthlySavingsEl.classList.add('tracking-widest');
+    }
+    if (monthlySavingsDistributedEl) {
+      monthlySavingsDistributedEl.classList.add('hidden');
+    }
+    if (savingsRateEl) savingsRateEl.textContent = '';
+  } else {
+    if (totalIncomeEl) {
+      totalIncomeEl.textContent = formatMoney(totalIncome);
+      totalIncomeEl.classList.remove('tracking-widest');
+    }
+    if (totalExpenseEl) {
+      totalExpenseEl.textContent = formatMoney(totalExpense);
+      totalExpenseEl.classList.remove('tracking-widest');
+    }
+    if (netEl) {
       netEl.textContent = formatMoney(netBalance);
       netEl.classList.remove('tracking-widest');
+    }
+
+    if (monthlySavingsEl) {
+      monthlySavingsEl.classList.remove('tracking-widest');
+      if (netBalance >= 0) {
+        if (distributed > 0) {
+          monthlySavingsEl.textContent = formatMoney(remainingSavings);
+          monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums truncate';
+          if (monthlySavingsDistributedEl) {
+            monthlySavingsDistributedEl.textContent = `${formatMoney(distributed)} dağıtıldı`;
+            monthlySavingsDistributedEl.classList.remove('hidden');
+          }
+          if (savingsRateEl) savingsRateEl.textContent = `(Kalan)`;
+        } else {
+          monthlySavingsEl.textContent = `+${formatMoney(netBalance)}`;
+          monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums truncate';
+          if (monthlySavingsDistributedEl) monthlySavingsDistributedEl.classList.add('hidden');
+          if (savingsRateEl) savingsRateEl.textContent = `(%${Math.max(0, savingsRate).toFixed(0)})`;
+        }
+      } else {
+        monthlySavingsEl.textContent = `-${formatMoney(Math.abs(netBalance))}`;
+        monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 tabular-nums truncate';
+        if (monthlySavingsDistributedEl) monthlySavingsDistributedEl.classList.add('hidden');
+        if (savingsRateEl) savingsRateEl.textContent = '(Açık)';
+      }
+    }
+  }
+
+  if (openDistributeBtn) {
+    if (remainingSavings <= 0 && netBalance > 0 && distributed > 0) {
+      openDistributeBtn.textContent = 'Dağıtıldı ✓';
+      openDistributeBtn.className = 'text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline';
+    } else {
+      openDistributeBtn.textContent = 'Dağıt';
+      openDistributeBtn.className = 'text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline';
     }
   }
 
   if (eyeIcon) {
     eyeIcon.setAttribute('data-lucide', isBalanceHidden ? 'eye-off' : 'eye');
     eyeIcon.className = `w-4 h-4 ${isBalanceHidden ? 'text-indigo-500' : 'text-zinc-400'}`;
-  }
-
-  if (monthlySavingsEl) {
-    if (netBalance >= 0) {
-      monthlySavingsEl.textContent = `+${formatMoney(netBalance)}`;
-      monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums truncate';
-      if (savingsRateEl) savingsRateEl.textContent = `(%${Math.max(0, savingsRate).toFixed(0)})`;
-    } else {
-      monthlySavingsEl.textContent = `-${formatMoney(Math.abs(netBalance))}`;
-      monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 tabular-nums truncate';
-      if (savingsRateEl) savingsRateEl.textContent = '(Açık)';
-    }
   }
 }
 
@@ -967,8 +1039,11 @@ function loadSampleData() {
   }
 }
 
-// --- TASARRUF DAĞITIM SİSTEMİ ---
+// --- TASARRUF DAĞITIM SİSTEMİ (SÜRGÜLÜ & %100 LİMİTLİ) ---
 let currentDistributableSavings = 0;
+let currentPeriodNetSavings = 0;
+let currentPeriodDistributed = 0;
+let currentPeriodKey = '';
 
 function openDistributeSavingsModal() {
   const periodTxs = getPeriodTransactions();
@@ -982,7 +1057,7 @@ function openDistributeSavingsModal() {
 
   const netSavings = totalIncome - totalExpense;
   if (netSavings <= 0) {
-    showToast('Bu ay için dağıtılabilecek pozitif bir tasarruf miktarı bulunmuyor.', 'warning');
+    showToast('Bu dönem için dağıtılabilecek pozitif bir tasarruf miktarı bulunmuyor.', 'warning');
     return;
   }
 
@@ -993,14 +1068,53 @@ function openDistributeSavingsModal() {
     return;
   }
 
-  currentDistributableSavings = netSavings;
+  currentPeriodKey = window.store.data.settings.selectedMonth === 'all'
+    ? window.store.getCurrentMonthString()
+    : window.store.data.settings.selectedMonth;
+
+  currentPeriodNetSavings = netSavings;
+  currentPeriodDistributed = window.store.getDistributedSavings(currentPeriodKey);
+  currentDistributableSavings = Math.max(0, netSavings - currentPeriodDistributed);
+
   const modal = document.getElementById('distributeSavingsModal');
+  const netTotalEl = document.getElementById('distributeNetSavingsTotal');
+  const alreadyEl = document.getElementById('distributeAlreadyDistributed');
   const totalLabel = document.getElementById('distributeTotalSavingsLabel');
-  if (totalLabel) totalLabel.textContent = formatMoney(netSavings);
+  const resetPastBtn = document.getElementById('btnResetPastDistribution');
+  const confirmBtn = document.getElementById('btnConfirmDistribute');
+
+  if (netTotalEl) netTotalEl.textContent = formatMoney(netSavings);
+  if (alreadyEl) alreadyEl.textContent = formatMoney(currentPeriodDistributed);
+  if (totalLabel) totalLabel.textContent = formatMoney(currentDistributableSavings);
+
+  if (resetPastBtn) {
+    if (currentPeriodDistributed > 0) {
+      resetPastBtn.classList.remove('hidden');
+    } else {
+      resetPastBtn.classList.add('hidden');
+    }
+  }
+
+  if (confirmBtn) {
+    confirmBtn.disabled = currentDistributableSavings <= 0;
+    if (currentDistributableSavings <= 0) {
+      confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+      confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
 
   renderDistributeGoalsList();
-  distributeSavingsEqually();
+
+  if (currentDistributableSavings > 0) {
+    distributeSavingsEqually();
+  } else {
+    resetDistributeSliders();
+    showToast('Bu dönemin tüm net tasarrufu zaten dağıtılmış.', 'info');
+  }
+
   modal.classList.remove('hidden');
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function closeDistributeSavingsModal() {
@@ -1016,96 +1130,260 @@ function renderDistributeGoalsList() {
   container.innerHTML = goals.map(g => {
     const remaining = Math.max(0, g.targetAmount - g.currentAmount);
     return `
-      <div class="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60">
-        <div class="min-w-0 pr-2">
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">${g.name}</span>
-            <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.2 rounded">%${g.sharePercent || 0} Pay</span>
+      <div class="p-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="min-w-0 pr-2">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${g.color || '#10b981'};"></span>
+              <span class="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">${g.name}</span>
+            </div>
+            <div class="text-[10px] text-zinc-400 mt-0.5">Hedefe Kalan: <strong class="text-zinc-700 dark:text-zinc-300 font-semibold">${formatMoney(remaining)}</strong></div>
           </div>
-          <div class="text-[10px] text-zinc-400">Hedefe Kalan: ${formatMoney(remaining)}</div>
+          <div class="text-right shrink-0">
+            <span class="goal-slider-percent text-xs font-black text-indigo-600 dark:text-indigo-400 tabular-nums" data-goal-id="${g.id}">%0</span>
+            <div class="goal-slider-amount text-[11px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums" data-goal-id="${g.id}">0,00 ₺</div>
+          </div>
         </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <input type="number" step="1" data-goal-id="${g.id}" class="distribute-goal-input w-24 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 text-xs font-bold text-right text-zinc-900 dark:text-zinc-100 focus:outline-none" value="0">
-          <span class="text-xs text-zinc-500 font-semibold">${window.store.data.settings.currency || '₺'}</span>
+
+        <!-- Sürgü ve - / + Kontrolleri -->
+        <div class="flex items-center gap-2 pt-0.5">
+          <button type="button" onclick="adjustGoalSlider('${g.id}', -5)" class="w-6 h-6 rounded-lg bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-bold flex items-center justify-center shrink-0 transition select-none active:scale-95">-</button>
+          
+          <input type="range" min="0" max="100" step="1" value="0" 
+            data-goal-id="${g.id}" 
+            class="distribute-goal-slider flex-1 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            oninput="handleGoalSliderInput('${g.id}', this.value)">
+          
+          <button type="button" onclick="adjustGoalSlider('${g.id}', 5)" class="w-6 h-6 rounded-lg bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-bold flex items-center justify-center shrink-0 transition select-none active:scale-95">+</button>
         </div>
       </div>
     `;
   }).join('');
 }
 
-function distributeSavingsEqually() {
-  const inputs = document.querySelectorAll('.distribute-goal-input');
-  if (!inputs.length || currentDistributableSavings <= 0) return;
-
-  const perGoal = Math.floor(currentDistributableSavings / inputs.length);
-  inputs.forEach(input => {
-    input.value = perGoal;
+function handleGoalSliderInput(goalId, targetVal) {
+  let val = Math.max(0, Math.min(100, parseInt(targetVal) || 0));
+  const sliders = document.querySelectorAll('.distribute-goal-slider');
+  
+  // Diğer tüm sürgülerin toplamını hesapla
+  let otherSum = 0;
+  sliders.forEach(s => {
+    if (s.dataset.goalId !== goalId) {
+      otherSum += (parseInt(s.value) || 0);
+    }
   });
+
+  // Toplam 100'ü ASLA geçemez
+  const maxAllowed = Math.max(0, 100 - otherSum);
+  if (val > maxAllowed) {
+    val = maxAllowed;
+  }
+
+  const activeSlider = document.querySelector(`.distribute-goal-slider[data-goal-id="${goalId}"]`);
+  if (activeSlider) {
+    activeSlider.value = val;
+  }
+
+  updateDistributeMeters();
 }
 
-function distributeSavingsProportionally() {
-  const inputs = document.querySelectorAll('.distribute-goal-input');
-  const goals = window.store.data.savingsGoals;
-  if (!inputs.length || currentDistributableSavings <= 0) return;
+function adjustGoalSlider(goalId, delta) {
+  const slider = document.querySelector(`.distribute-goal-slider[data-goal-id="${goalId}"]`);
+  if (!slider) return;
+  const current = parseInt(slider.value) || 0;
+  handleGoalSliderInput(goalId, current + delta);
+}
 
-  // 1. Kullanıcının Birikim sayfasında belirlediği Tasarruf Payı (%) oranlarını kontrol et
-  let totalUserPercent = 0;
-  goals.forEach(g => {
-    totalUserPercent += (parseFloat(g.sharePercent) || 0);
+function updateDistributeMeters() {
+  const sliders = document.querySelectorAll('.distribute-goal-slider');
+  let totalPercent = 0;
+  
+  sliders.forEach(s => {
+    const p = parseInt(s.value) || 0;
+    totalPercent += p;
+    const goalId = s.dataset.goalId;
+    const allocated = Math.round(currentDistributableSavings * (p / 100) * 100) / 100;
+
+    const pEl = document.querySelector(`.goal-slider-percent[data-goal-id="${goalId}"]`);
+    const aEl = document.querySelector(`.goal-slider-amount[data-goal-id="${goalId}"]`);
+    if (pEl) pEl.textContent = `%${p}`;
+    if (aEl) aEl.textContent = formatMoney(allocated);
   });
 
-  if (totalUserPercent > 0) {
-    // Kullanıcının kendi belirlediği yüzdelere göre paylaştır
-    inputs.forEach(input => {
-      const goalId = input.dataset.goalId;
-      const goal = goals.find(g => g.id === goalId);
-      const userPct = (goal && parseFloat(goal.sharePercent)) || 0;
-      const share = Math.floor((userPct / totalUserPercent) * currentDistributableSavings);
-      input.value = share;
-    });
-    showToast('Tasarruf, belirlediğiniz pay yüzdelerine göre orantılandı 📊', 'info');
-  } else {
-    // Eğer yüzde tanımlanmamışsa kalan hedef tutarlarına göre orantıla
-    let totalRemaining = 0;
-    goals.forEach(g => {
-      totalRemaining += Math.max(0, g.targetAmount - g.currentAmount);
-    });
+  const remainingPercent = Math.max(0, 100 - totalPercent);
+  const totalAllocatedAmount = Math.round(currentDistributableSavings * (totalPercent / 100) * 100) / 100;
 
-    if (totalRemaining <= 0) {
-      distributeSavingsEqually();
-      return;
-    }
+  const totalPercentEl = document.getElementById('distributeTotalPercentLabel');
+  const remPercentEl = document.getElementById('distributeRemainingPercentLabel');
+  const progressBar = document.getElementById('distributeProgressBar');
+  const allocatedAmountEl = document.getElementById('distributeAllocatedAmountLabel');
 
-    inputs.forEach(input => {
-      const goalId = input.dataset.goalId;
-      const goal = goals.find(g => g.id === goalId);
-      const rem = goal ? Math.max(0, goal.targetAmount - goal.currentAmount) : 0;
-      const share = Math.floor((rem / totalRemaining) * currentDistributableSavings);
-      input.value = share;
-    });
+  if (totalPercentEl) {
+    totalPercentEl.textContent = `%${totalPercent} / %100`;
+    totalPercentEl.className = `font-bold tabular-nums ${totalPercent === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`;
+  }
+
+  if (remPercentEl) {
+    remPercentEl.textContent = remainingPercent === 0 ? 'Tamamı Dağıtıldı ✓' : `Kalan: %${remainingPercent}`;
+    remPercentEl.className = `text-[11px] font-medium ${remainingPercent === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500'}`;
+  }
+
+  if (progressBar) {
+    progressBar.style.width = `${Math.min(100, totalPercent)}%`;
+    progressBar.className = `h-full transition-all duration-150 ${totalPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`;
+  }
+
+  if (allocatedAmountEl) {
+    allocatedAmountEl.textContent = formatMoney(totalAllocatedAmount);
   }
 }
 
+function distributeSavingsEqually() {
+  const sliders = document.querySelectorAll('.distribute-goal-slider');
+  if (!sliders.length || currentDistributableSavings <= 0) return;
+  const count = sliders.length;
+  const basePercent = Math.floor(100 / count);
+  let remainder = 100 - (basePercent * count);
+
+  sliders.forEach((s, idx) => {
+    let p = basePercent;
+    if (idx < remainder) p += 1;
+    s.value = p;
+  });
+
+  updateDistributeMeters();
+}
+
+function distributeSavingsProportionally() {
+  const sliders = document.querySelectorAll('.distribute-goal-slider');
+  const goals = window.store.data.savingsGoals;
+  if (!sliders.length || currentDistributableSavings <= 0) return;
+
+  let totalNeeded = 0;
+  goals.forEach(g => {
+    totalNeeded += Math.max(0, g.targetAmount - g.currentAmount);
+  });
+
+  if (totalNeeded <= 0) {
+    distributeSavingsEqually();
+    return;
+  }
+
+  let allocatedSum = 0;
+  const shares = [];
+
+  goals.forEach((g) => {
+    const rem = Math.max(0, g.targetAmount - g.currentAmount);
+    let p = Math.floor((rem / totalNeeded) * 100);
+    shares.push(p);
+    allocatedSum += p;
+  });
+
+  // Kalan yüzdelik puanları tamamla (Tam %100 olması için)
+  let diff = 100 - allocatedSum;
+  for (let i = 0; i < diff; i++) {
+    shares[i % shares.length] += 1;
+  }
+
+  sliders.forEach(s => {
+    const gIndex = goals.findIndex(g => g.id === s.dataset.goalId);
+    if (gIndex !== -1) {
+      s.value = shares[gIndex];
+    }
+  });
+
+  updateDistributeMeters();
+  showToast('Tasarruf hedeflerin kalan ihtiyaçlarına göre orantılandı 📊', 'info');
+}
+
+function resetDistributeSliders() {
+  const sliders = document.querySelectorAll('.distribute-goal-slider');
+  sliders.forEach(s => s.value = 0);
+  updateDistributeMeters();
+}
+
 function confirmDistributeSavings() {
-  const inputs = document.querySelectorAll('.distribute-goal-input');
+  if (currentDistributableSavings <= 0) {
+    showToast('Bu dönemde dağıtılacak serbest tasarruf kalmadı.', 'warning');
+    return;
+  }
+
+  const sliders = document.querySelectorAll('.distribute-goal-slider');
   let allocatedTotal = 0;
   let count = 0;
 
-  inputs.forEach(input => {
-    const goalId = input.dataset.goalId;
-    const amount = parseFloat(input.value) || 0;
-    if (amount > 0) {
-      window.store.depositToSavingsGoal(goalId, amount);
-      allocatedTotal += amount;
-      count++;
+  sliders.forEach(s => {
+    const goalId = s.dataset.goalId;
+    const p = parseInt(s.value) || 0;
+    if (p > 0) {
+      const amount = Math.round(currentDistributableSavings * (p / 100) * 100) / 100;
+      if (amount > 0) {
+        window.store.depositToSavingsGoal(goalId, amount);
+        allocatedTotal += amount;
+        count++;
+      }
     }
   });
 
   if (allocatedTotal > 0) {
+    // Dağıtılan tutarı döneme kaydet (tasarruf miktarından düşer)
+    window.store.addDistributedSavings(currentPeriodKey, allocatedTotal);
     showToast(`${formatMoney(allocatedTotal)} birikim hedeflerinize başarıyla aktarıldı! 🎯`, 'success');
     closeDistributeSavingsModal();
     renderApp();
   } else {
-    showToast('Lütfen hedeflere eklenecek bir tutar girin.', 'warning');
+    showToast('Lütfen sürgülerden en az bir hedefe pay verin.', 'warning');
   }
 }
+
+function resetPastDistribution() {
+  if (confirm('Bu döneme ait önceki birikim dağıtım kaydını sıfırlamak istiyor musunuz? (Hedeflerdeki mevcut bakiyeler korunur, tasarruf tekrar serbest kalır)')) {
+    window.store.resetDistributedSavings(currentPeriodKey);
+    showToast('Önceki dağıtım sıfırlandı. Tasarruf tekrar serbest bırakıldı.', 'info');
+    openDistributeSavingsModal();
+    renderApp();
+  }
+}
+
+// --- iOS KESTİRMELER (SHORTCUTS) YÖNETİMİ ---
+function copyShortcutUrl(type) {
+  const baseUrl = window.location.origin + window.location.pathname;
+  const fullUrl = `${baseUrl}?action=${type}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      showToast(`${type === 'income' ? 'Gelir' : 'Gider'} kestirme bağlantısı kopyalandı! 📋`, 'success');
+    }).catch(() => {
+      fallbackCopyText(fullUrl, type);
+    });
+  } else {
+    fallbackCopyText(fullUrl, type);
+  }
+}
+
+function fallbackCopyText(text, type) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    showToast(`${type === 'income' ? 'Gelir' : 'Gider'} kestirme bağlantısı kopyalandı! 📋`, 'success');
+  } catch (err) {
+    showToast('Kopyalama başarısız oldu, lütfen linki manuel kopyalayın.', 'error');
+  }
+  document.body.removeChild(textArea);
+}
+
+function openIosShortcutsGuideModal() {
+  const modal = document.getElementById('iosShortcutsGuideModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeIosShortcutsGuideModal() {
+  const modal = document.getElementById('iosShortcutsGuideModal');
+  if (modal) modal.classList.add('hidden');
+}
+

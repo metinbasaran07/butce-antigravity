@@ -64,6 +64,7 @@ class Store {
           transactions: parsed.transactions || [],
           categories: parsed.categories && parsed.categories.length ? parsed.categories : [...DEFAULT_CATEGORIES],
           savingsGoals: parsed.savingsGoals || [...DEFAULT_SAVINGS_GOALS],
+          distributedSavings: parsed.distributedSavings || {},
           settings: {
             currency: '₺',
             theme: 'dark',
@@ -82,6 +83,7 @@ class Store {
       transactions: generateDemoTransactions(),
       categories: [...DEFAULT_CATEGORIES],
       savingsGoals: [...DEFAULT_SAVINGS_GOALS],
+      distributedSavings: {},
       settings: {
         currency: '₺',
         theme: 'dark',
@@ -235,6 +237,28 @@ class Store {
     return false;
   }
 
+  // --- Distributed Savings Tracking ---
+  getDistributedSavings(monthKey) {
+    if (!this.data.distributedSavings) return 0;
+    return parseFloat(this.data.distributedSavings[monthKey]) || 0;
+  }
+
+  addDistributedSavings(monthKey, amount) {
+    if (!this.data.distributedSavings) {
+      this.data.distributedSavings = {};
+    }
+    const current = parseFloat(this.data.distributedSavings[monthKey]) || 0;
+    this.data.distributedSavings[monthKey] = Math.max(0, current + (parseFloat(amount) || 0));
+    this.save();
+  }
+
+  resetDistributedSavings(monthKey) {
+    if (this.data.distributedSavings && this.data.distributedSavings[monthKey]) {
+      delete this.data.distributedSavings[monthKey];
+      this.save();
+    }
+  }
+
   // --- Settings ---
   setSetting(key, value) {
     this.data.settings[key] = value;
@@ -310,6 +334,7 @@ class Store {
       transactions: [],
       categories: [...DEFAULT_CATEGORIES],
       savingsGoals: [],
+      distributedSavings: {},
       settings: {
         currency: '₺',
         theme: 'dark',
@@ -324,6 +349,7 @@ class Store {
       transactions: generateDemoTransactions(),
       categories: [...DEFAULT_CATEGORIES],
       savingsGoals: [...DEFAULT_SAVINGS_GOALS],
+      distributedSavings: {},
       settings: {
         currency: '₺',
         theme: 'dark',
