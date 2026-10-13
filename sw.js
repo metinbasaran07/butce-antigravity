@@ -1,20 +1,13 @@
-const CACHE_NAME = 'butcem-pwa-v1';
+const CACHE_NAME = 'butcem-pwa-v2';
 const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './favicon.svg',
-  './css/app.css',
-  './js/store.js',
-  './js/charts.js',
-  './js/pwa.js',
-  './js/app.js',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon.svg',
-  'https://cdn.tailwindcss.com',
-  'https://unpkg.com/lucide@latest',
-  'https://cdn.jsdelivr.net/npm/chart.js'
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/favicon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon.svg',
+  '/icons/logo.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -43,11 +36,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cached, but also fetch update in background (stale-while-revalidate)
         fetch(event.request).then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             caches.open(CACHE_NAME).then((cache) => {
@@ -67,8 +59,7 @@ self.addEventListener('fetch', (event) => {
         });
         return networkResponse;
       }).catch(() => {
-        // Offline fallback if needed
-        return caches.match('./index.html');
+        return caches.match('/index.html');
       });
     })
   );

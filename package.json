@@ -4,12 +4,25 @@
   "description": "Sade, zarif ve güvenli bütçe ve birikim takip uygulaması.",
   "type": "module",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "build": "echo 'Static app - ready to run'",
+    "dev": "vite --host 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 3000",
     "lint": "echo 'No lint errors'"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "chart.js": "^4.5.1",
+    "express": "^4.21.2",
+    "lucide-react": "^1.56.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
   }
 }

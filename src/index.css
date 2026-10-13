@@ -1,3 +1,4 @@
+@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
@@ -32,7 +33,7 @@ body {
   box-shadow: none;
 }
 
-/* Glass Header - Safe area inset for iPhone notch/Dynamic Island */
+/* Glass Header */
 .header-glass {
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(16px);
@@ -116,7 +117,7 @@ input[type="number"] {
   padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 8px));
 }
 
-/* Dedicated Bottom Bar Glass - NEVER has safe-area-inset-top */
+/* Dedicated Bottom Bar Glass */
 .bottom-bar-glass {
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(20px);
