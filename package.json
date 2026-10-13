@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "build": "echo 'Static app - ready to run'",
+    "build": "node build.js",
     "lint": "echo 'No lint errors'"
   },
   "dependencies": {
