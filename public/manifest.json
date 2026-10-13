@@ -28,5 +28,14 @@
       "sizes": "any",
       "type": "image/svg+xml"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Gider Ekle",
+      "short_name": "Gider",
+      "description": "Doğrudan gider ekleme menüsünü aç",
+      "url": "/?action=expense",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }

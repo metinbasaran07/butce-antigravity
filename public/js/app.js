@@ -36,14 +36,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const amount = params.get('amount');
   const note = params.get('note');
   const category = params.get('category') || params.get('categoryId');
+  const hash = window.location.hash;
 
-  if (action === 'income' || type === 'income') {
-    openTransactionModal(null, 'income');
+  // iPhone Eylem Düğmesi (Action Button) veya Kestirme tetikleyicisi
+  const isExpenseAction = action === 'expense' || type === 'expense' || params.has('expense') || params.has('gider') || hash === '#expense' || hash === '#gider';
+
+  if (isExpenseAction) {
+    openTransactionModal(null, 'expense');
     if (amount) { const el = document.getElementById('txAmount'); if (el) el.value = amount; }
     if (note) { const el = document.getElementById('txNote'); if (el) el.value = note; }
     if (category) { const el = document.getElementById('txCategory'); if (el) el.value = category; }
-  } else if (action === 'expense' || type === 'expense') {
-    openTransactionModal(null, 'expense');
+  } else if (action === 'income' || type === 'income' || params.has('income') || params.has('gelir') || hash === '#income' || hash === '#gelir') {
+    openTransactionModal(null, 'income');
     if (amount) { const el = document.getElementById('txAmount'); if (el) el.value = amount; }
     if (note) { const el = document.getElementById('txNote'); if (el) el.value = note; }
     if (category) { const el = document.getElementById('txCategory'); if (el) el.value = category; }
@@ -56,7 +60,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // URL parametrelerini temizle ki sayfa yenilendiğinde tekrar açılmasın
-  if (action || type || params.get('tab')) {
+  if (action || type || isExpenseAction || hash || params.get('tab')) {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+});
+
+// Sayfa arka planda açıkken kestirme ile hash değişirse doğrudan gider modalını aç
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === '#expense' || window.location.hash === '#gider') {
+    openTransactionModal(null, 'expense');
     if (window.history && window.history.replaceState) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -1604,5 +1618,51 @@ function resetPastDistribution() {
     renderApp();
   }
 }
+
+// --- iPHONE EYLEM DÜĞMESİ & KESTİRME YÖNETİMİ ---
+function copyExpenseShortcutUrl() {
+  const baseUrl = window.location.origin + window.location.pathname;
+  const fullUrl = `${baseUrl}?action=expense`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      showToast('Gider ekleme bağlantısı kopyalandı! Kestirmeler uygulamasında "URL Aç" eylemine yapıştırın ⚡', 'success');
+    }).catch(() => {
+      fallbackCopyText(fullUrl);
+    });
+  } else {
+    fallbackCopyText(fullUrl);
+  }
+}
+window.copyExpenseShortcutUrl = copyExpenseShortcutUrl;
+
+function fallbackCopyText(text) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    showToast('Gider ekleme bağlantısı kopyalandı! Kestirmeler uygulamasında "URL Aç" eylemine yapıştırın ⚡', 'success');
+  } catch (err) {
+    showToast('Kopyalama başarısız oldu.', 'error');
+  }
+  document.body.removeChild(textArea);
+}
+
+function openActionButtonGuideModal() {
+  const modal = document.getElementById('actionButtonGuideModal');
+  if (modal) modal.classList.remove('hidden');
+}
+window.openActionButtonGuideModal = openActionButtonGuideModal;
+
+function closeActionButtonGuideModal() {
+  const modal = document.getElementById('actionButtonGuideModal');
+  if (modal) modal.classList.add('hidden');
+}
+window.closeActionButtonGuideModal = closeActionButtonGuideModal;
+
 
 
