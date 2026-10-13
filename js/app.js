@@ -262,6 +262,10 @@ function renderSummaryCards(periodTxs) {
   const savingsRateEl = document.getElementById('monthlySavingsRateEl');
   const openDistributeBtn = document.getElementById('btnOpenDistributeModal');
 
+  if (eyeIcon) {
+    eyeIcon.setAttribute('data-lucide', isBalanceHidden ? 'eye-off' : 'eye');
+  }
+
   if (isBalanceHidden) {
     if (totalIncomeEl) {
       totalIncomeEl.textContent = '•••••••• ₺';
@@ -323,14 +327,40 @@ function renderSummaryCards(periodTxs) {
     }
   }
 
-  if (openDistributeBtn) {
-    if (remainingSavings <= 0 && netBalance > 0 && distributed > 0) {
-      openDistributeBtn.textContent = 'Dağıtıldı ✓';
-      openDistributeBtn.className = 'text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline';
+  const distributeAvailableBadge = document.getElementById('distributeAvailableBadge');
+  const distributeButtonSubtext = document.getElementById('distributeButtonSubtext');
+  const distributeButtonActionText = document.getElementById('distributeButtonActionText');
+
+  if (distributeAvailableBadge) {
+    if (isBalanceHidden) {
+      distributeAvailableBadge.textContent = '•••••••• ₺';
+      distributeAvailableBadge.className = 'text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/20 text-white shadow-sm';
     } else {
-      openDistributeBtn.textContent = 'Dağıt';
-      openDistributeBtn.className = 'text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline';
+      if (remainingSavings > 0) {
+        distributeAvailableBadge.textContent = `${formatMoney(remainingSavings)} Boşta`;
+        distributeAvailableBadge.className = 'text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white text-indigo-900 shadow-sm tabular-nums';
+      } else if (distributed > 0) {
+        distributeAvailableBadge.textContent = 'Dağıtıldı ✓';
+        distributeAvailableBadge.className = 'text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 shadow-sm tabular-nums';
+      } else {
+        distributeAvailableBadge.textContent = '0,00 ₺';
+        distributeAvailableBadge.className = 'text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/20 text-white shadow-sm tabular-nums';
+      }
     }
+  }
+
+  if (distributeButtonSubtext) {
+    if (remainingSavings > 0) {
+      distributeButtonSubtext.textContent = `${formatMoney(remainingSavings)} serbest tasarruf hedeflere dağıtılabilir`;
+    } else if (distributed > 0) {
+      distributeButtonSubtext.textContent = `${formatMoney(distributed)} bu ayki hedeflere aktarıldı`;
+    } else {
+      distributeButtonSubtext.textContent = 'Bu dönemde dağıtılacak serbest tasarruf bulunmuyor';
+    }
+  }
+
+  if (distributeButtonActionText) {
+    distributeButtonActionText.textContent = (remainingSavings <= 0 && distributed > 0) ? 'İncele' : 'Dağıt';
   }
 
   if (eyeIcon) {
@@ -445,6 +475,34 @@ function renderSavingsGoals() {
       </div>
     `;
     return;
+  }
+
+  const totalAssignedShare = goals.reduce((s, g) => s + (parseFloat(g.sharePercent) || 0), 0);
+  const remainingShare = Math.max(0, 100 - totalAssignedShare);
+
+  const totalBadge = document.getElementById('savingsTotalShareBadge');
+  const remText = document.getElementById('savingsShareRemainingText');
+  const bar = document.getElementById('savingsTotalShareBar');
+
+  if (totalBadge) {
+    totalBadge.textContent = `%${totalAssignedShare} / %100`;
+    totalBadge.className = `font-bold tabular-nums ${totalAssignedShare === 100 ? 'text-emerald-600 dark:text-emerald-400' : totalAssignedShare > 100 ? 'text-rose-600' : 'text-indigo-600 dark:text-indigo-400'}`;
+  }
+  if (remText) {
+    if (totalAssignedShare === 100) {
+      remText.textContent = 'Tüm paylar hedeflere paylaştırıldı (%100) ✓';
+      remText.className = 'text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold truncate';
+    } else if (totalAssignedShare > 100) {
+      remText.textContent = `Toplam pay %100'ü aşıyor! (%${totalAssignedShare})`;
+      remText.className = 'text-[10px] text-rose-600 font-bold truncate';
+    } else {
+      remText.textContent = `Kalan boş pay: %${remainingShare}`;
+      remText.className = 'text-[10px] text-zinc-400 truncate';
+    }
+  }
+  if (bar) {
+    bar.style.width = `${Math.min(100, totalAssignedShare)}%`;
+    bar.className = `h-full rounded-full transition-all duration-300 ${totalAssignedShare === 100 ? 'bg-emerald-500' : totalAssignedShare > 100 ? 'bg-rose-500' : 'bg-indigo-600'}`;
   }
 
   container.innerHTML = goals.map(goal => {
@@ -728,7 +786,8 @@ function bindEvents() {
 // IBAN Komisyonu Görünürlük ve Metin Güncelleyici
 function updateIbanFeeUI() {
   const isExpense = document.querySelector('input[name="txType"]:checked')?.value === 'expense';
-  const isTransfer = document.getElementById('txPaymentMethod')?.value === 'transfer';
+  const paymentMethod = document.getElementById('txPaymentMethod')?.value;
+  const isCardOrBank = paymentMethod === 'card';
   const wrapper = document.getElementById('ibanFeeWrapper');
   const feeAmountLabel = document.getElementById('ibanFeeAmountLabel');
   
@@ -736,7 +795,7 @@ function updateIbanFeeUI() {
   const currency = window.store.data.settings.currency || '₺';
 
   if (wrapper) {
-    if (isExpense && isTransfer) {
+    if (isExpense && isCardOrBank) {
       wrapper.classList.remove('hidden');
       if (feeAmountLabel) feeAmountLabel.textContent = `+${fee.toFixed(2)} ${currency}`;
     } else {
@@ -829,12 +888,12 @@ function saveTransaction() {
   let note = document.getElementById('txNote').value.trim();
   const paymentMethod = document.getElementById('txPaymentMethod').value;
   const ibanCheckbox = document.getElementById('txIbanFeeCheckbox');
-  const hasTransferFee = Boolean(type === 'expense' && paymentMethod === 'transfer' && ibanCheckbox && ibanCheckbox.checked);
+  const hasTransferFee = Boolean(type === 'expense' && paymentMethod === 'card' && ibanCheckbox && ibanCheckbox.checked);
   const feeAmount = hasTransferFee ? (window.store.data.settings.transferFee ?? 15.00) : 0;
   
   const finalAmount = baseAmount + feeAmount;
   if (hasTransferFee && !note.includes('Komisyon')) {
-    note = note ? `${note} (+${feeAmount} ₺ Havale Komisyonu)` : `+${feeAmount} ₺ Havale Komisyonu Dahil`;
+    note = note ? `${note} (+${feeAmount} ₺ İBAN Komisyonu)` : `+${feeAmount} ₺ İBAN Komisyonu Dahil`;
   }
 
   if (editingTransactionId) {
@@ -913,6 +972,18 @@ function openGoalModal(editId = null) {
   const shareInput = document.getElementById('goalSharePercent');
   const colorInput = document.getElementById('goalColor');
 
+  const maxLabel = document.getElementById('goalShareMaxLabel');
+  const hintEl = document.getElementById('goalSharePercentHint');
+
+  const otherGoalsSum = window.store.data.savingsGoals
+    .filter(g => g.id !== editId)
+    .reduce((sum, g) => sum + (parseFloat(g.sharePercent) || 0), 0);
+  const maxAllowed = Math.max(0, 100 - otherGoalsSum);
+
+  if (maxLabel) maxLabel.textContent = `Max: %${maxAllowed}`;
+  if (hintEl) hintEl.textContent = `Diğer hedeflerin toplamı: %${otherGoalsSum} (Kalan boş pay: %${maxAllowed})`;
+  if (shareInput) shareInput.max = maxAllowed;
+
   if (editId) {
     const goal = window.store.data.savingsGoals.find(g => g.id === editId);
     if (!goal) return;
@@ -929,11 +1000,27 @@ function openGoalModal(editId = null) {
     if (targetInput) targetInput.value = '';
     if (currentInput) currentInput.value = '0';
     if (dateInput) dateInput.value = '';
-    if (shareInput) shareInput.value = '';
+    if (shareInput) shareInput.value = maxAllowed > 0 ? Math.min(25, maxAllowed) : 0;
     if (colorInput) colorInput.value = '#10b981';
   }
 
   modal.classList.remove('hidden');
+}
+
+function validateGoalSharePercent(input) {
+  const otherGoalsSum = window.store.data.savingsGoals
+    .filter(g => g.id !== editingGoalId)
+    .reduce((sum, g) => sum + (parseFloat(g.sharePercent) || 0), 0);
+  const maxAllowed = Math.max(0, 100 - otherGoalsSum);
+  let val = parseFloat(input.value) || 0;
+  if (val < 0) {
+    val = 0;
+    input.value = 0;
+  }
+  if (val > maxAllowed) {
+    input.value = maxAllowed;
+    showToast(`Toplam birikim payı %100'ü aşamaz. Bu hedefe en fazla %${maxAllowed} atayabilirsiniz.`, 'warning');
+  }
 }
 
 function closeGoalModal() {
@@ -946,13 +1033,23 @@ function saveGoal() {
   const targetAmount = parseFloat(document.getElementById('goalTargetAmount')?.value);
   const currentAmount = parseFloat(document.getElementById('goalCurrentAmount')?.value) || 0;
   const targetDate = document.getElementById('goalDate')?.value || '';
-  const sharePercent = parseFloat(document.getElementById('goalSharePercent')?.value) || 0;
+  let sharePercent = parseFloat(document.getElementById('goalSharePercent')?.value) || 0;
   const color = document.getElementById('goalColor')?.value || '#10b981';
   const icon = 'piggy-bank';
 
   if (!name || !targetAmount || targetAmount <= 0) {
     showToast('Geçerli bir hedef adı ve tutar girin', 'warning');
     return;
+  }
+
+  const otherGoalsSum = window.store.data.savingsGoals
+    .filter(g => g.id !== editingGoalId)
+    .reduce((sum, g) => sum + (parseFloat(g.sharePercent) || 0), 0);
+  const maxAllowed = Math.max(0, 100 - otherGoalsSum);
+
+  if (sharePercent > maxAllowed) {
+    sharePercent = maxAllowed;
+    showToast(`Toplam pay %100'ü aşamaz! Maksimum %${maxAllowed} atanabilir.`, 'warning');
   }
 
   if (editingGoalId) {
@@ -1107,7 +1204,17 @@ function openDistributeSavingsModal() {
   renderDistributeGoalsList();
 
   if (currentDistributableSavings > 0) {
-    distributeSavingsEqually();
+    const hasDefinedShares = goals.some(g => (g.sharePercent || 0) > 0);
+    if (hasDefinedShares) {
+      const sliders = document.querySelectorAll('.distribute-goal-slider');
+      sliders.forEach(s => {
+        const goal = goals.find(g => g.id === s.dataset.goalId);
+        s.value = goal ? (goal.sharePercent || 0) : 0;
+      });
+      updateDistributeMeters();
+    } else {
+      distributeSavingsEqually();
+    }
   } else {
     resetDistributeSliders();
     showToast('Bu dönemin tüm net tasarrufu zaten dağıtılmış.', 'info');
@@ -1130,22 +1237,36 @@ function renderDistributeGoalsList() {
   container.innerHTML = goals.map(g => {
     const remaining = Math.max(0, g.targetAmount - g.currentAmount);
     return `
-      <div class="p-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="min-w-0 pr-2">
+      <div class="p-3 sm:p-3.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0 pr-1">
             <div class="flex items-center gap-1.5">
               <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${g.color || '#10b981'};"></span>
               <span class="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">${g.name}</span>
             </div>
             <div class="text-[10px] text-zinc-400 mt-0.5">Hedefe Kalan: <strong class="text-zinc-700 dark:text-zinc-300 font-semibold">${formatMoney(remaining)}</strong></div>
           </div>
-          <div class="text-right shrink-0">
-            <span class="goal-slider-percent text-xs font-black text-indigo-600 dark:text-indigo-400 tabular-nums" data-goal-id="${g.id}">%0</span>
-            <div class="goal-slider-amount text-[11px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums" data-goal-id="${g.id}">0,00 ₺</div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <!-- Elle Tutar Girişi (₺) -->
+            <div class="flex items-center bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-2 py-1 shadow-sm">
+              <input type="number" step="0.5" min="0" placeholder="0" 
+                data-goal-id="${g.id}" 
+                class="distribute-goal-amount-input w-16 sm:w-20 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-transparent text-right focus:outline-none"
+                oninput="handleGoalAmountInput('${g.id}', this.value)">
+              <span class="text-[10px] font-bold text-zinc-400 ml-1">₺</span>
+            </div>
+            <!-- Elle Yüzde Girişi (%) -->
+            <div class="flex items-center bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-2 py-1 shadow-sm">
+              <input type="number" step="1" min="0" max="100" placeholder="0" 
+                data-goal-id="${g.id}" 
+                class="distribute-goal-percent-input w-9 sm:w-11 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-transparent text-right focus:outline-none"
+                oninput="handleGoalPercentInput('${g.id}', this.value)">
+              <span class="text-[10px] font-bold text-zinc-400 ml-0.5">%</span>
+            </div>
           </div>
         </div>
 
-        <!-- Sürgü ve - / + Kontrolleri -->
+        <!-- Sürgü ve - / + Butonları -->
         <div class="flex items-center gap-2 pt-0.5">
           <button type="button" onclick="adjustGoalSlider('${g.id}', -5)" class="w-6 h-6 rounded-lg bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-bold flex items-center justify-center shrink-0 transition select-none active:scale-95">-</button>
           
@@ -1165,7 +1286,7 @@ function handleGoalSliderInput(goalId, targetVal) {
   let val = Math.max(0, Math.min(100, parseInt(targetVal) || 0));
   const sliders = document.querySelectorAll('.distribute-goal-slider');
   
-  // Diğer tüm sürgülerin toplamını hesapla
+  // Diğer tüm hedeflerin yüzde toplamını hesapla
   let otherSum = 0;
   sliders.forEach(s => {
     if (s.dataset.goalId !== goalId) {
@@ -1184,7 +1305,43 @@ function handleGoalSliderInput(goalId, targetVal) {
     activeSlider.value = val;
   }
 
-  updateDistributeMeters();
+  updateDistributeMeters(goalId, 'slider');
+}
+
+function handleGoalPercentInput(goalId, targetVal) {
+  handleGoalSliderInput(goalId, targetVal);
+}
+
+function handleGoalAmountInput(goalId, targetAmount) {
+  if (currentDistributableSavings <= 0) return;
+  
+  // Diğer tüm hedeflerin ayrılmış tutar toplamını hesapla
+  const sliders = document.querySelectorAll('.distribute-goal-slider');
+  let otherSumPercent = 0;
+  sliders.forEach(s => {
+    if (s.dataset.goalId !== goalId) {
+      otherSumPercent += (parseInt(s.value) || 0);
+    }
+  });
+
+  const maxAllowedPercent = Math.max(0, 100 - otherSumPercent);
+  const maxAllowedAmount = Math.round(currentDistributableSavings * (maxAllowedPercent / 100) * 100) / 100;
+
+  let amt = Math.max(0, parseFloat(targetAmount) || 0);
+  if (amt > maxAllowedAmount) {
+    amt = maxAllowedAmount;
+  }
+
+  // Tutar üzerinden yüzde hesapla
+  let computedPercent = Math.round((amt / currentDistributableSavings) * 100);
+  if (computedPercent > maxAllowedPercent) computedPercent = maxAllowedPercent;
+
+  const activeSlider = document.querySelector(`.distribute-goal-slider[data-goal-id="${goalId}"]`);
+  if (activeSlider) {
+    activeSlider.value = computedPercent;
+  }
+
+  updateDistributeMeters(goalId, 'amount');
 }
 
 function adjustGoalSlider(goalId, delta) {
@@ -1194,7 +1351,7 @@ function adjustGoalSlider(goalId, delta) {
   handleGoalSliderInput(goalId, current + delta);
 }
 
-function updateDistributeMeters() {
+function updateDistributeMeters(sourceGoalId = null, sourceType = null) {
   const sliders = document.querySelectorAll('.distribute-goal-slider');
   let totalPercent = 0;
   
@@ -1204,19 +1361,27 @@ function updateDistributeMeters() {
     const goalId = s.dataset.goalId;
     const allocated = Math.round(currentDistributableSavings * (p / 100) * 100) / 100;
 
-    const pEl = document.querySelector(`.goal-slider-percent[data-goal-id="${goalId}"]`);
-    const aEl = document.querySelector(`.goal-slider-amount[data-goal-id="${goalId}"]`);
-    if (pEl) pEl.textContent = `%${p}`;
-    if (aEl) aEl.textContent = formatMoney(allocated);
+    const pInput = document.querySelector(`.distribute-goal-percent-input[data-goal-id="${goalId}"]`);
+    const aInput = document.querySelector(`.distribute-goal-amount-input[data-goal-id="${goalId}"]`);
+
+    if (pInput && (goalId !== sourceGoalId || sourceType !== 'slider')) {
+      pInput.value = p;
+    }
+    if (aInput && (goalId !== sourceGoalId || sourceType !== 'amount')) {
+      aInput.value = allocated > 0 ? allocated : '';
+    }
   });
 
+  // Toplam dağıtılan tutar ve kalan henüz dağıtılmamış tutar
+  const totalAllocatedAmount = Math.min(currentDistributableSavings, Math.round(currentDistributableSavings * (totalPercent / 100) * 100) / 100);
+  const remainingUndistributed = Math.max(0, currentDistributableSavings - totalAllocatedAmount);
   const remainingPercent = Math.max(0, 100 - totalPercent);
-  const totalAllocatedAmount = Math.round(currentDistributableSavings * (totalPercent / 100) * 100) / 100;
 
   const totalPercentEl = document.getElementById('distributeTotalPercentLabel');
   const remPercentEl = document.getElementById('distributeRemainingPercentLabel');
   const progressBar = document.getElementById('distributeProgressBar');
   const allocatedAmountEl = document.getElementById('distributeAllocatedAmountLabel');
+  const remainingAmountEl = document.getElementById('distributeRemainingAmountLabel');
 
   if (totalPercentEl) {
     totalPercentEl.textContent = `%${totalPercent} / %100`;
@@ -1224,8 +1389,8 @@ function updateDistributeMeters() {
   }
 
   if (remPercentEl) {
-    remPercentEl.textContent = remainingPercent === 0 ? 'Tamamı Dağıtıldı ✓' : `Kalan: %${remainingPercent}`;
-    remPercentEl.className = `text-[11px] font-medium ${remainingPercent === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500'}`;
+    remPercentEl.textContent = remainingPercent === 0 ? 'Tamamı Dağıtıldı ✓' : `Kalan Pay: %${remainingPercent}`;
+    remPercentEl.className = `text-[11px] font-medium ${remainingPercent === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-zinc-500'}`;
   }
 
   if (progressBar) {
@@ -1235,6 +1400,10 @@ function updateDistributeMeters() {
 
   if (allocatedAmountEl) {
     allocatedAmountEl.textContent = formatMoney(totalAllocatedAmount);
+  }
+
+  if (remainingAmountEl) {
+    remainingAmountEl.textContent = formatMoney(remainingUndistributed);
   }
 }
 
@@ -1332,7 +1501,7 @@ function confirmDistributeSavings() {
     closeDistributeSavingsModal();
     renderApp();
   } else {
-    showToast('Lütfen sürgülerden en az bir hedefe pay verin.', 'warning');
+    showToast('Lütfen hedeflere pay veya tutar belirleyin.', 'warning');
   }
 }
 

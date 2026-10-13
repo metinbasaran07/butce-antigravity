@@ -2,6 +2,7 @@
   "name": "Bütçem - Akıllı Bütçe ve Birikim Takibi",
   "short_name": "Bütçem",
   "description": "Gelir, gider, kategori ve birikimlerinizi kolayca takip edin. Verileriniz cihazınızda güvende kalır.",
+  "id": "/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

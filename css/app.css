@@ -9,7 +9,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
-  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 24px));
+  overscroll-behavior-y: none;
 }
 
 /* Minimalist Clean Cards */
@@ -27,17 +28,17 @@ body {
 
 /* Glass Header - Safe area inset for iPhone notch/Dynamic Island */
 .header-glass {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid #f1f5f9;
   padding-top: env(safe-area-inset-top, 0px);
 }
 
 .dark .header-glass {
-  background: rgba(15, 23, 42, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding-top: env(safe-area-inset-top, 0px);
 }
@@ -106,5 +107,23 @@ input[type="number"] {
 }
 
 .pb-safe {
-  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 24px));
+}
+
+/* Bottom Navigation Safe Area for iPhone Gesture Indicator */
+.bottom-nav-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 12px);
+  padding-top: 8px;
+  min-height: calc(4.25rem + env(safe-area-inset-bottom, 20px));
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mobile-nav-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 46px;
+  padding: 6px 10px;
 }
