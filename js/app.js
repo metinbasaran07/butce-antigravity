@@ -1668,3 +1668,4 @@ function closeIosShortcutsGuideModal() {
   const modal = document.getElementById('iosShortcutsGuideModal');
   if (modal) modal.classList.add('hidden');
 }
+
