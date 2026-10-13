@@ -1,0 +1,15 @@
+{
+  "name": "butcem-app",
+  "version": "1.0.0",
+  "description": "Sade, zarif ve güvenli bütçe ve birikim takip uygulaması.",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "echo 'Static app - ready to run'",
+    "lint": "echo 'No lint errors'"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "Bütçem - Sade & Akıllı Bütçe Takibi",
+  "description": "Sade, zarif ve güvenli bütçe ve birikim takip uygulaması.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
