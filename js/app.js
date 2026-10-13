@@ -5,6 +5,7 @@
 let activeTab = 'dashboard';
 let editingTransactionId = null;
 let editingGoalId = null;
+let editingCategoryId = null;
 let selectedGoalForDeposit = null;
 
 // Para Formatlayıcı
@@ -923,29 +924,66 @@ function confirmDeleteTransaction(id) {
   }
 }
 
-function openCategoryModal() {
+function openCategoryModal(catId = null) {
+  editingCategoryId = catId;
   const modal = document.getElementById('categoryModal');
-  document.getElementById('catName').value = '';
-  document.getElementById('catBudget').value = '';
-  document.getElementById('catColor').value = '#6366f1';
+  const title = document.getElementById('catModalTitle');
+  const nameInput = document.getElementById('catName');
+  const typeSelect = document.getElementById('catType');
+  const colorInput = document.getElementById('catColor');
+  const iconSelect = document.getElementById('catIcon');
+  const budgetInput = document.getElementById('catBudget');
+
+  if (catId) {
+    const cat = window.store.getCategory(catId);
+    if (title) title.textContent = 'Kategoriyi Düzenle';
+    if (nameInput) nameInput.value = cat.name || '';
+    if (typeSelect) typeSelect.value = cat.type || 'expense';
+    if (colorInput) colorInput.value = cat.color || '#6366f1';
+    if (iconSelect) iconSelect.value = cat.icon || 'tag';
+    if (budgetInput) budgetInput.value = cat.monthlyBudget || '';
+  } else {
+    if (title) title.textContent = 'Yeni Kategori';
+    if (nameInput) nameInput.value = '';
+    if (typeSelect) typeSelect.value = 'expense';
+    if (colorInput) colorInput.value = '#6366f1';
+    if (iconSelect) iconSelect.value = 'tag';
+    if (budgetInput) budgetInput.value = '';
+  }
+
   modal.classList.remove('hidden');
+  setTimeout(() => nameInput && nameInput.focus(), 100);
+}
+
+function editCategory(id) {
+  openCategoryModal(id);
 }
 
 function closeCategoryModal() {
   document.getElementById('categoryModal').classList.add('hidden');
+  editingCategoryId = null;
 }
 
 function saveCategory() {
   const name = document.getElementById('catName').value.trim();
-  if (!name) return;
+  if (!name) {
+    showToast('Lütfen bir kategori adı girin', 'warning');
+    return;
+  }
 
   const type = document.getElementById('catType').value;
   const color = document.getElementById('catColor').value;
   const icon = document.getElementById('catIcon').value || 'tag';
   const monthlyBudget = document.getElementById('catBudget').value;
 
-  window.store.addCategory({ name, type, color, icon, monthlyBudget });
-  showToast('Kategori kaydedildi', 'success');
+  if (editingCategoryId) {
+    window.store.updateCategory(editingCategoryId, { name, type, color, icon, monthlyBudget });
+    showToast('Kategori güncellendi', 'success');
+  } else {
+    window.store.addCategory({ name, type, color, icon, monthlyBudget });
+    showToast('Kategori kaydedildi', 'success');
+  }
+
   closeCategoryModal();
   populateCategorySelects();
   renderApp();

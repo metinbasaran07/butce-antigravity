@@ -77,6 +77,9 @@
         <button onclick="switchTab('savings')" data-tab="savings" class="tab-btn px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all">
           Birikim
         </button>
+        <button onclick="switchTab('categories')" data-tab="categories" class="tab-btn px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all">
+          Kategoriler
+        </button>
         <button onclick="switchTab('analytics')" data-tab="analytics" class="tab-btn px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all">
           Grafik
         </button>
@@ -360,11 +363,16 @@
     <!-- ==================== 5. TAB: KATEGORİLER ==================== -->
     <section id="tab-categories" class="tab-pane hidden space-y-4">
       <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Kategoriler & Limitler</h2>
-          <p class="text-xs text-zinc-400">Harcama kategorilerinizi yapılandırın.</p>
+        <div class="flex items-center gap-2.5">
+          <button type="button" onclick="switchTab('dashboard')" class="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition" title="Geri Dön">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          </button>
+          <div>
+            <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Kategoriler & Limitler</h2>
+            <p class="text-xs text-zinc-400">Harcama kategorilerinizi yapılandırın ve limit belirleyin.</p>
+          </div>
         </div>
-        <button onclick="openCategoryModal()" class="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-xs font-semibold">
+        <button onclick="openCategoryModal()" class="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
           + Yeni Kategori
         </button>
       </div>
@@ -379,6 +387,17 @@
       <div>
         <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Ayarlar</h2>
         <p class="text-xs text-zinc-400">Tercihler ve veri yönetimi.</p>
+      </div>
+
+      <!-- Kategoriler & Limitler Hızlı Erişim -->
+      <div class="card-clean p-4 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Kategoriler & Bütçe Limitleri</div>
+          <div class="text-[11px] text-zinc-400">Kategori isimleri, renkleri ve aylık bütçe sınırları</div>
+        </div>
+        <button type="button" onclick="switchTab('categories')" class="px-3 py-1.5 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-900 transition text-zinc-800 dark:text-zinc-200">
+          Yönet →
+        </button>
       </div>
 
       <!-- Para Birimi -->
@@ -605,8 +624,8 @@
   <div id="categoryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
     <div class="card-clean w-full max-w-xs rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-xl">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Yeni Kategori</h3>
-        <button onclick="closeCategoryModal()" class="p-1 text-zinc-400">
+        <h3 id="catModalTitle" class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Yeni Kategori</h3>
+        <button type="button" onclick="closeCategoryModal()" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -614,31 +633,46 @@
       <form id="categoryForm" class="space-y-3">
         <div>
           <label class="block text-[11px] text-zinc-400 mb-1">Tür</label>
-          <select id="catType" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs">
-            <option value="expense">Gider</option>
-            <option value="income">Gelir</option>
+          <select id="catType" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
+            <option value="expense">Gider (-)</option>
+            <option value="income">Gelir (+)</option>
           </select>
         </div>
 
         <div>
-          <label class="block text-[11px] text-zinc-400 mb-1">Adı</label>
-          <input type="text" id="catName" required placeholder="Kategori adı" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+          <label class="block text-[11px] text-zinc-400 mb-1">Kategori Adı</label>
+          <input type="text" id="catName" required placeholder="Örn: Market & Gıda" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
         </div>
 
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block text-[11px] text-zinc-400 mb-1">Renk</label>
-            <input type="color" id="catColor" value="#6366f1" class="w-full h-8 bg-transparent border-0 cursor-pointer">
+            <input type="color" id="catColor" value="#6366f1" class="w-full h-8 bg-transparent border-0 cursor-pointer rounded-lg">
           </div>
           <div>
             <label class="block text-[11px] text-zinc-400 mb-1">İkon</label>
-            <select id="catIcon" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2 py-1.5 text-xs">
+            <select id="catIcon" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
               <option value="tag">Etiket</option>
-              <option value="coffee">Kahve</option>
-              <option value="dumbbell">Spor</option>
-              <option value="car">Ulaşım</option>
+              <option value="shopping-cart">Market & Alışveriş</option>
+              <option value="utensils">Yemek & Kafe</option>
+              <option value="coffee">Kahve & İçecek</option>
+              <option value="home">Kira & Ev</option>
+              <option value="zap">Faturalar</option>
+              <option value="car">Ulaşım & Yakıt</option>
+              <option value="film">Sinema & Eğlence</option>
+              <option value="heart-pulse">Sağlık & Bakım</option>
+              <option value="book-open">Eğitim & Kitap</option>
+              <option value="shopping-bag">Giyim & Çanta</option>
+              <option value="briefcase">Maaş & İş</option>
+              <option value="laptop">Teknoloji & Freelance</option>
+              <option value="trending-up">Yatırım & Borsa</option>
+              <option value="key">Kira Geliri</option>
+              <option value="shield-check">Güvence & Sigorta</option>
+              <option value="dumbbell">Spor & Fitness</option>
+              <option value="plane">Seyahat & Tatil</option>
               <option value="gift">Hediye</option>
-              <option value="laptop">Elektronik</option>
+              <option value="wallet">Cüzdan</option>
+              <option value="more-horizontal">Diğer</option>
             </select>
           </div>
         </div>
@@ -818,7 +852,6 @@
             <span class="text-zinc-600 dark:text-zinc-400 font-medium">Kalan Dağıtılmamış:</span>
             <span id="distributeRemainingAmountLabel" class="font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">0,00 ₺</span>
           </div>
-          <div id="distributeRemainingPercentLabel" class="text-[11px] font-bold text-zinc-500">Kalan: %100</div>
         </div>
       </div>
 

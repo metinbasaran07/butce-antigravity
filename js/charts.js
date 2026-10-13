@@ -245,6 +245,11 @@ function renderDailyTrendChart(transactions, currency, theme) {
     dailyTrendChartInstance.destroy();
   }
 
+  const isDark = document.documentElement.classList.contains('dark');
+  const lineColor = isDark ? '#818cf8' : '#4f46e5';
+  const pointBg = isDark ? '#c7d2fe' : '#4338ca';
+  const fillColor = isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(79, 70, 229, 0.08)';
+
   dailyTrendChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
@@ -252,15 +257,15 @@ function renderDailyTrendChart(transactions, currency, theme) {
       datasets: [{
         label: 'Günlük Gider',
         data: data.length ? data : [0],
-        borderColor: '#0f172a',
-        darkBorderColor: '#f8fafc',
-        borderWidth: 2,
-        backgroundColor: 'rgba(15, 23, 42, 0.03)',
+        borderColor: lineColor,
+        borderWidth: 2.5,
+        backgroundColor: fillColor,
         fill: true,
-        tension: 0.3,
-        pointBackgroundColor: '#0f172a',
-        pointRadius: 3,
-        pointHoverRadius: 5
+        tension: 0.35,
+        pointBackgroundColor: pointBg,
+        pointBorderColor: lineColor,
+        pointRadius: 3.5,
+        pointHoverRadius: 6
       }]
     },
     options: {
