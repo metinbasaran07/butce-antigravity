@@ -13,12 +13,960 @@
   <meta property="og:title" content="Bütçem - Sade & Akıllı Bütçe Takibi">
   <meta property="og:description" content="Sade, zarif ve güvenli bütçe ve birikim takip uygulaması.">
   
-  <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <!-- Tailwind CSS, Lucide Icons, Chart.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            zinc: {
+              850: '#1f1f23',
+              950: '#09090b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen transition-colors duration-200 select-none">
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
+
+  <!-- Minimalist PWA Kurulum Bildirimi -->
+  <div id="pwaInstallBanner" class="hidden bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-xs font-medium flex items-center justify-between sticky top-0 z-50 animate-fade-in border-b border-zinc-800">
+    <div class="flex items-center gap-2">
+      <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+      <span>Bütçem'i ana ekranınıza ekleyip bağımsız uygulama olarak kullanabilirsiniz.</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="triggerPwaInstall()" class="px-2.5 py-1 bg-white text-zinc-900 dark:bg-zinc-900 dark:text-white rounded-md font-semibold text-[11px]">
+        Yükle
+      </button>
+      <button onclick="document.getElementById('pwaInstallBanner').classList.add('hidden')" class="opacity-70 hover:opacity-100 p-0.5">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Sade Üst Navigasyon -->
+  <header class="header-glass sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+      <!-- Logo -->
+      <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchTab('dashboard')">
+        <img src="icons/logo.svg" alt="Bütçem Logo" class="w-7 h-7 rounded-lg shadow-sm">
+        <span class="text-sm font-bold tracking-tight">Bütçem</span>
+      </div>
+
+      <!-- Masaüstü Sade Sekmeler -->
+      <nav class="hidden md:flex items-center bg-zinc-100 dark:bg-zinc-900/80 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
+        <button onclick="switchTab('dashboard')" data-tab="dashboard" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 transition-all shadow-sm">
+          Özet
+        </button>
+        <button onclick="switchTab('transactions')" data-tab="transactions" class="tab-btn px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all">
+          İşlemler
+        </button>
+        <button onclick="switchTab('savings')" data-tab="savings" class="tab-btn px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all">
+          Birikim
+        </button>
+        <button onclick="switchTab('categories')" data-tab="categories" class="tab-btn px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all">
+          Kategoriler
+        </button>
+        <button onclick="switchTab('analytics')" data-tab="analytics" class="tab-btn px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all">
+          Grafik
+        </button>
+        <button onclick="switchTab('settings')" data-tab="settings" class="tab-btn px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-all">
+          Ayarlar
+        </button>
+      </nav>
+
+      <!-- Sağ Kontroller -->
+      <div class="flex items-center gap-1.5">
+        <select id="monthSelector" class="bg-transparent border border-zinc-200 dark:border-zinc-800 text-xs font-semibold rounded-lg px-2.5 py-1.5 text-zinc-700 dark:text-zinc-300 focus:outline-none cursor-pointer">
+        </select>
+
+        <button id="themeToggleBtn" onclick="toggleTheme()" title="Tema" class="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition">
+          <i data-lucide="sun" class="w-4 h-4 text-zinc-400"></i>
+        </button>
+
+        <button onclick="openTransactionModal()" class="inline-flex items-center gap-1 px-3 py-1.5 bg-zinc-900 hover:bg-black dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Ekle</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ana Kapsayıcı -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 pt-6">
+
+    <!-- ==================== 1. TAB: ÖZET (DASHBOARD) ==================== -->
+    <section id="tab-dashboard" class="tab-pane space-y-6">
+      
+      <!-- Ana Bakiye ve Özet Kartı (Apple Wallet / Revolut Stili) -->
+      <div class="card-clean rounded-3xl p-6 sm:p-7 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-zinc-400 font-semibold">
+          <span class="uppercase tracking-wider">Net Bakiye</span>
+        </div>
+
+        <div class="my-3 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div id="netBalanceEl" class="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">
+              0,00 ₺
+            </div>
+            <button id="toggleBalanceEyeBtn" onclick="toggleBalanceVisibility()" title="Bakiyeyi Gizle / Göster" class="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-850 transition">
+              <i id="balanceEyeIcon" data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+          
+          <!-- Hızlı Gelir / Gider Ekle Butonları (Sadece Logo/İkon) -->
+          <div class="flex items-center gap-2">
+            <button onclick="openTransactionModal(null, 'income')" title="Gelir Ekle" class="w-9 h-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition active:scale-95 shadow-sm">
+              <i data-lucide="plus" class="w-5 h-5 stroke-[2.5]"></i>
+            </button>
+            <button onclick="openTransactionModal(null, 'expense')" title="Gider Ekle" class="w-9 h-9 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center transition active:scale-95 shadow-sm">
+              <i data-lucide="minus" class="w-5 h-5 stroke-[2.5]"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Sütunlu Metrik Alanı: Toplam Gelir, Toplam Gider, Aylık Tasarruf (Mobilde Tam Görünür) -->
+        <div class="pt-3.5 border-t border-zinc-100 dark:border-zinc-800/80 grid grid-cols-3 gap-1.5 sm:gap-3">
+          <!-- Toplam Gelir -->
+          <div class="p-2 sm:p-3 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-100 dark:border-zinc-800/60 flex flex-col justify-between">
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+              <span class="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-semibold truncate">Toplam Gelir</span>
+            </div>
+            <div id="totalIncomeEl" class="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums truncate">0,00 ₺</div>
+          </div>
+
+          <!-- Toplam Gider -->
+          <div class="p-2 sm:p-3 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-100 dark:border-zinc-800/60 flex flex-col justify-between">
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+              <span class="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-semibold truncate">Toplam Gider</span>
+            </div>
+            <div id="totalExpenseEl" class="text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">0,00 ₺</div>
+          </div>
+
+          <!-- Aylık Tasarruf -->
+          <div class="p-2 sm:p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200/50 dark:border-indigo-800/40 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-1 mb-1">
+                <div class="flex items-center gap-1 min-w-0">
+                  <span class="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+                  <span class="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 font-semibold truncate">Tasarruf</span>
+                </div>
+                <span id="monthlySavingsRateEl" class="text-[9px] text-indigo-500 dark:text-indigo-400 font-medium truncate"></span>
+              </div>
+              <div id="monthlySavingsAmountEl" class="text-xs sm:text-sm font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums truncate">0,00 ₺</div>
+              <!-- Boşta Tasarruf Durumu: Butonun üstünde ferah, tek satırda temiz gösterim -->
+              <div id="monthlySavingsDistributedEl" class="text-[9px] sm:text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate mt-0.5"></div>
+            </div>
+            <!-- Sade, Şık ve Kompakt Dağıt Butonu (Asla üstüne badge binmez) -->
+            <button id="btnOpenDistributeModal" onclick="openDistributeSavingsModal()" title="Tasarrufu Hedeflere Dağıt" class="w-full mt-2 py-1.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-[11px] flex items-center justify-center gap-1.5 transition active:scale-95 shadow-xs">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300 shrink-0"></i>
+              <span id="distributeButtonActionText">Dağıt</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hızlı Kestirmeler (1-Dokunuşla Harcama Şablonları) -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 -mt-2">
+        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider shrink-0 flex items-center gap-1 pl-1">
+          <i data-lucide="zap" class="w-3 h-3 text-indigo-500"></i> Hızlı:
+        </span>
+        <button type="button" onclick="quickAddPreset('expense', 'cat-yemek', 'Kahve', 120)" class="shrink-0 px-2.5 py-1 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 border border-zinc-200/50 dark:border-zinc-800">
+          <span>☕</span> <span>Kahve</span>
+        </button>
+        <button type="button" onclick="quickAddPreset('expense', 'cat-market', 'Market', 250)" class="shrink-0 px-2.5 py-1 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 border border-zinc-200/50 dark:border-zinc-800">
+          <span>🛒</span> <span>Market</span>
+        </button>
+        <button type="button" onclick="quickAddPreset('expense', 'cat-yemek', 'Yemek', 300)" class="shrink-0 px-2.5 py-1 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 border border-zinc-200/50 dark:border-zinc-800">
+          <span>🍽️</span> <span>Yemek</span>
+        </button>
+        <button type="button" onclick="quickAddPreset('expense', 'cat-ulasim', 'Ulaşım', 150)" class="shrink-0 px-2.5 py-1 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 border border-zinc-200/50 dark:border-zinc-800">
+          <span>🚌</span> <span>Ulaşım</span>
+        </button>
+        <button type="button" onclick="quickAddPreset('expense', 'cat-fatura', 'Fatura', 500)" class="shrink-0 px-2.5 py-1 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 border border-zinc-200/50 dark:border-zinc-800">
+          <span>💡</span> <span>Fatura</span>
+        </button>
+      </div>
+
+      <!-- Harcama Dağılımı & Bütçe Limitleri -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Harcama Dağılımı -->
+        <div class="card-clean rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-zinc-800 dark:text-zinc-200">Gider Dağılımı</h3>
+            <button onclick="switchTab('analytics')" class="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">
+              Detay →
+            </button>
+          </div>
+          <div class="relative w-full h-52 flex items-center justify-center">
+            <canvas id="categoryDoughnutChart"></canvas>
+            <div id="categoryChartEmpty" class="hidden text-center text-zinc-400 text-xs">
+              Bu dönem harcama kaydı yok.
+            </div>
+          </div>
+        </div>
+
+        <!-- Kategoriler -->
+        <div class="card-clean rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-bold text-zinc-800 dark:text-zinc-200">Kategoriler</h3>
+              <button onclick="switchTab('categories')" class="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">
+                Tümü →
+              </button>
+            </div>
+            <div id="budgetLimitList">
+              <!-- Dinamik doldurulur -->
+            </div>
+          </div>
+          <div class="pt-3 text-[11px] text-zinc-400 flex items-center justify-between">
+            <span>Dönem içi harcama takibi</span>
+            <button onclick="openCategoryModal()" class="font-semibold text-zinc-700 dark:text-zinc-300 hover:underline">+ Yeni</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Son İşlemler -->
+      <div class="card-clean rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold text-zinc-800 dark:text-zinc-200">Son İşlemler</h3>
+          <button onclick="switchTab('transactions')" class="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">
+            Tümü →
+          </button>
+        </div>
+        <div id="recentTransactionsList" class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+          <!-- Dinamik doldurulur -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== 2. TAB: TÜM İŞLEMLER ==================== -->
+    <section id="tab-transactions" class="tab-pane hidden space-y-4">
+      <!-- Filtreler & Arama -->
+      <div class="card-clean p-3 rounded-2xl flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+          <input type="text" id="txSearchInput" placeholder="İşlem ara..." class="w-full bg-transparent border-0 pl-9 pr-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none">
+        </div>
+
+        <div class="flex items-center gap-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-zinc-100 dark:border-zinc-800">
+          <select id="filterType" class="bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-700 dark:text-zinc-300 focus:outline-none">
+            <option value="all">Tümü</option>
+            <option value="expense">Gider</option>
+            <option value="income">Gelir</option>
+          </select>
+
+          <select id="filterCategory" class="bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-700 dark:text-zinc-300 focus:outline-none">
+            <option value="all">Kategoriler</option>
+          </select>
+
+          <button onclick="openTransactionModal()" class="px-2.5 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-xs font-semibold">
+            + Yeni
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between px-1">
+        <span class="text-xs font-semibold text-zinc-400">Geçmiş</span>
+        <span id="txCountBadge" class="text-xs text-zinc-400">0 işlem</span>
+      </div>
+
+      <div id="allTransactionsList" class="card-clean p-4 rounded-2xl">
+        <!-- Dinamik doldurulur -->
+      </div>
+    </section>
+
+    <!-- ==================== 3. TAB: BİRİKİMLER ==================== -->
+    <section id="tab-savings" class="tab-pane hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Birikim Hedefleri</h2>
+          <p class="text-xs text-zinc-400">Planladığınız hedefleri takip edin.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openDistributeSavingsModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Tasarrufu Dağıt</span>
+          </button>
+          <button onclick="openGoalModal()" class="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-xs font-semibold">
+            + Yeni Hedef
+          </button>
+        </div>
+      </div>
+
+      <!-- Toplam Dağıtım Payı Özeti (Maksimum %100 Takibi) -->
+      <div id="savingsShareSummaryCard" class="card-clean p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 flex-wrap">
+              <span>Hedef Dağıtım Payı:</span>
+              <span id="savingsTotalShareBadge" class="font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">%0 / %100</span>
+            </div>
+            <div id="savingsShareRemainingText" class="text-[10px] text-zinc-400 truncate">
+              Kalan boş pay: %100
+            </div>
+          </div>
+        </div>
+        <div class="w-20 sm:w-28 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden shrink-0">
+          <div id="savingsTotalShareBar" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div id="savingsGoalsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <!-- Dinamik doldurulur -->
+      </div>
+    </section>
+
+    <!-- ==================== 4. TAB: GRAFİKLER & ANALİZ ==================== -->
+    <section id="tab-analytics" class="tab-pane hidden space-y-5">
+      <div>
+        <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Finansal İstatistikler</h2>
+        <p class="text-xs text-zinc-400">Dönemsel eğilimlerinizi inceleyin.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="card-clean p-5 rounded-2xl">
+          <h3 class="text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-3">Son 6 Ay Gelir / Gider</h3>
+          <div class="relative w-full h-64">
+            <canvas id="monthlyBarChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card-clean p-5 rounded-2xl">
+          <h3 class="text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-3">Günlük Harcama Eğilimi</h3>
+          <div class="relative w-full h-64">
+            <canvas id="dailyTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 5. TAB: KATEGORİLER ==================== -->
+    <section id="tab-categories" class="tab-pane hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <button type="button" onclick="switchTab('dashboard')" class="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition" title="Geri Dön">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          </button>
+          <div>
+            <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Kategoriler & Limitler</h2>
+            <p class="text-xs text-zinc-400">Harcama kategorilerinizi yapılandırın ve limit belirleyin.</p>
+          </div>
+        </div>
+        <button onclick="openCategoryModal()" class="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
+          + Yeni Kategori
+        </button>
+      </div>
+
+      <div id="categoriesManagerList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+        <!-- Dinamik doldurulur -->
+      </div>
+    </section>
+
+    <!-- ==================== 6. TAB: AYARLAR ==================== -->
+    <section id="tab-settings" class="tab-pane hidden space-y-4 max-w-lg mx-auto">
+      <div>
+        <h2 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Ayarlar</h2>
+        <p class="text-xs text-zinc-400">Tercihler ve veri yönetimi.</p>
+      </div>
+
+      <!-- Kategoriler & Limitler Hızlı Erişim -->
+      <div class="card-clean p-4 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Kategoriler & Bütçe Limitleri</div>
+          <div class="text-[11px] text-zinc-400">Kategori isimleri, renkleri ve aylık bütçe sınırları</div>
+        </div>
+        <button type="button" onclick="switchTab('categories')" class="px-3 py-1.5 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-900 transition text-zinc-800 dark:text-zinc-200">
+          Yönet →
+        </button>
+      </div>
+
+      <!-- Para Birimi -->
+      <div class="card-clean p-4 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Para Birimi</div>
+          <div class="text-[11px] text-zinc-400">Görüntülenen para sembolü</div>
+        </div>
+        <select id="settingsCurrency" class="bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-semibold">
+          <option value="₺">₺ (TRY)</option>
+          <option value="$">$ (USD)</option>
+          <option value="€">€ (EUR)</option>
+          <option value="£">£ (GBP)</option>
+        </select>
+      </div>
+
+      <!-- İBAN Komisyon Tutarı Ayarı -->
+      <div class="card-clean p-4 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">İBAN Komisyon Tutarı</div>
+          <div class="text-[11px] text-zinc-400">İBAN komisyonu uygulandığında eklenecek tutar</div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <input type="number" step="0.5" id="settingsTransferFee" class="w-20 bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-semibold text-right text-zinc-900 dark:text-zinc-100 focus:outline-none">
+          <span class="text-xs font-semibold text-zinc-500">₺</span>
+        </div>
+      </div>
+
+      <!-- Hızlı İşlem & Kısayollar (Shortcuts) Bölümü (Yenilenmiş & Kesin Çözüm) -->
+      <div class="card-clean p-4 sm:p-5 rounded-2xl space-y-4 border-l-4 border-l-indigo-500">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+              <i data-lucide="zap" class="w-4 h-4"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">Hızlı İşlemler & Kısayollar</div>
+              <div class="text-[11px] text-zinc-400 truncate">Safari açılmadan tek dokunuşla gelir / gider ekleyin</div>
+            </div>
+          </div>
+          <button type="button" onclick="openIosShortcutsGuideModal()" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline shrink-0">
+            Rehber →
+          </button>
+        </div>
+
+        <!-- 1. Kesin Çözüm: Ana Ekran Haptic Touch (Safari Asla Açılmaz) -->
+        <div class="p-3.5 rounded-2xl bg-emerald-50/10 border border-emerald-500/20 space-y-2">
+          <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+            <span>1. Yöntem: Ana Ekran Simgesine Basılı Tutun (En Hızlısı)</span>
+          </div>
+          <p class="text-[11px] text-emerald-700/90 dark:text-emerald-300/90 leading-relaxed">
+            Bütçem ana ekranınıza eklendiğinde, simgeye <strong>1 saniye basılı tutun</strong> (Haptic Touch). Açılan menüden doğrudan <strong>"Hızlı Gelir Ekle"</strong> veya <strong>"Hızlı Gider Ekle"</strong>ye dokunun. Apple PWA motoru sayesinde <strong>Safari asla açılmaz</strong>, uygulama içi pencere anında açılır!
+          </p>
+          <div class="flex items-center gap-2 pt-1.5 border-t border-emerald-500/15">
+            <button type="button" onclick="openTransactionModal(null, 'income')" class="flex-1 py-1.5 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-semibold transition active:scale-95 shadow-xs flex items-center justify-center gap-1.5">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Gelir Ekle</span>
+            </button>
+            <button type="button" onclick="openTransactionModal(null, 'expense')" class="flex-1 py-1.5 px-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] font-semibold transition active:scale-95 shadow-xs flex items-center justify-center gap-1.5">
+              <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+              <span>Gider Ekle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Apple Shortcuts (Kestirmeler) & Eylem Düğmesi Doğru Yolu -->
+        <div class="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/50 dark:border-indigo-800/40 space-y-2">
+          <div class="flex items-center gap-2 text-xs font-bold text-indigo-900 dark:text-indigo-200">
+            <i data-lucide="sparkles" class="w-4 h-4 text-indigo-500 shrink-0"></i>
+            <span>2. Yöntem: Apple Kestirmeler'de "Uygulamayı Aç" Eylemi</span>
+          </div>
+          <div class="text-[11px] text-zinc-600 dark:text-zinc-300 space-y-1 leading-relaxed">
+            <div>💡 <strong>Safari'nin Açılmasını Engelleme:</strong> Kestirmeler uygulamasında "URL Aç" seçmeyin. Bunun yerine arama kutusuna <strong>"Bütçem"</strong> yazıp <strong>"Bütçem Uygulamasını Aç"</strong> eylemini seçin.</div>
+            <div class="text-zinc-400">Bu eylemi iPhone 15/16 Pro Eylem Düğmesine (Action Button) veya Kilit Ekranına atayabilirsiniz.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PWA Yükleme Butonu -->
+      <div class="card-clean p-4 rounded-2xl space-y-2">
+        <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Ana Ekrana Ekle (PWA)</div>
+        <p class="text-[11px] text-zinc-400">Uygulamayı tarayıcıdan bağımsız, tam ekran çalıştırmak için cihazınıza ekleyin.</p>
+        <button onclick="triggerPwaInstall()" class="w-full py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold transition">
+          Cihaza Ekle
+        </button>
+      </div>
+
+      <!-- Veri Yedekleme -->
+      <div class="card-clean p-4 rounded-2xl space-y-3">
+        <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Veri Yedekleme & Aktarım</div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="exportDataJSON()" class="p-2 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 text-center">
+            JSON İndir
+          </button>
+          <button onclick="exportDataCSV()" class="p-2 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 text-center">
+            Excel / CSV İndir
+          </button>
+        </div>
+        <input type="file" id="jsonFileInput" accept=".json" class="hidden">
+        <button onclick="triggerImportJSON()" class="w-full p-2 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 text-center">
+          Yedekten Geri Yükle
+        </button>
+      </div>
+
+      <!-- Sıfırlama -->
+      <div class="card-clean p-4 rounded-2xl flex gap-2">
+        <button onclick="loadSampleData()" class="flex-1 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900">
+          Demo Veri Yükle
+        </button>
+        <button onclick="resetAllData()" class="flex-1 py-2 text-xs font-medium text-rose-500 border border-rose-200/40 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/20">
+          Tümünü Sıfırla
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MOBİL ALT GEZİNME (BOTTOM NAV) ==================== -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bottom-bar-glass z-40 px-3 flex items-center justify-around bottom-nav-safe select-none">
+    <button onclick="switchTab('dashboard')" data-tab="dashboard" class="mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-zinc-900 dark:text-white transition active:scale-95 touch-manipulation">
+      <i data-lucide="layout-grid" class="w-4.5 h-4.5"></i>
+      <span class="text-[10px] font-medium leading-none">Özet</span>
+    </button>
+    <button onclick="switchTab('transactions')" data-tab="transactions" class="mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-zinc-400 transition active:scale-95 touch-manipulation">
+      <i data-lucide="list" class="w-4.5 h-4.5"></i>
+      <span class="text-[10px] font-medium leading-none">İşlemler</span>
+    </button>
+    <button onclick="openTransactionModal()" aria-label="Yeni İşlem Ekle" class="-mt-3.5 w-11 h-11 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center shadow-lg transition active:scale-95 touch-manipulation shrink-0 border-2 border-white dark:border-zinc-900">
+      <i data-lucide="plus" class="w-5 h-5 stroke-[2.5]"></i>
+    </button>
+    <button onclick="switchTab('savings')" data-tab="savings" class="mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-zinc-400 transition active:scale-95 touch-manipulation">
+      <i data-lucide="piggy-bank" class="w-4.5 h-4.5"></i>
+      <span class="text-[10px] font-medium leading-none">Birikim</span>
+    </button>
+    <button onclick="switchTab('settings')" data-tab="settings" class="mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-zinc-400 transition active:scale-95 touch-manipulation">
+      <i data-lucide="sliders" class="w-4.5 h-4.5"></i>
+      <span class="text-[10px] font-medium leading-none">Ayarlar</span>
+    </button>
+  </nav>
+
+  <!-- ==================== MODALLAR ==================== -->
+
+  <!-- 1. İŞLEM MODALI -->
+  <div id="transactionModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-sm rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-xl max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="txModalTitle" class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Yeni İşlem</h3>
+        <button onclick="closeTransactionModal()" class="p-1 text-zinc-400 hover:text-zinc-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="transactionForm" class="space-y-3.5">
+        <!-- Tip Switch -->
+        <div class="grid grid-cols-2 gap-1 p-0.5 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50">
+          <label class="cursor-pointer">
+            <input type="radio" name="txType" value="expense" checked class="peer sr-only">
+            <div class="py-2 text-center text-xs font-semibold rounded-lg text-zinc-500 peer-checked:bg-white dark:peer-checked:bg-zinc-800 peer-checked:text-zinc-900 dark:peer-checked:text-white transition">
+              Gider (-)
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="txType" value="income" class="peer sr-only">
+            <div class="py-2 text-center text-xs font-semibold rounded-lg text-zinc-500 peer-checked:bg-white dark:peer-checked:bg-zinc-800 peer-checked:text-emerald-500 transition">
+              Gelir (+)
+            </div>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Tutar (₺)</label>
+          <input type="number" step="0.01" id="txAmount" required placeholder="0.00" class="w-full bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2 text-base font-bold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Kategori</label>
+            <button type="button" onclick="openCategoryModal()" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+              + Yeni Kategori
+            </button>
+          </div>
+          <select id="txCategory" required class="w-full bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </select>
+        </div>
+
+        <!-- Tarih & Ödeme - Mobilde üst üste binmemesi için esnek alan -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Tarih</label>
+            <input type="date" id="txDate" required class="w-full bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Ödeme</label>
+            <select id="txPaymentMethod" class="w-full bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
+              <option value="card">Kart</option>
+              <option value="cash">Nakit</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- İBAN Komisyonu Checkbox (Kart seçildiğinde ve gider olduğunda görünür) -->
+        <div id="ibanFeeWrapper" class="hidden p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 space-y-1">
+          <label class="flex items-start gap-2.5 cursor-pointer text-xs font-medium text-zinc-700 dark:text-zinc-300">
+            <input type="checkbox" id="txIbanFeeCheckbox" class="mt-0.5 rounded text-indigo-600 focus:ring-0 cursor-pointer w-4 h-4 shrink-0">
+            <span class="leading-snug">İBAN Komisyonu Ekle (<strong id="ibanFeeAmountLabel" class="text-indigo-600 dark:text-indigo-400 font-bold">+15.00 ₺</strong>)</span>
+          </label>
+          <div id="ibanFeePreview" class="hidden text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 pl-6.5"></div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Açıklama (Opsiyonel)</label>
+          <input type="text" id="txNote" placeholder="Açıklama..." class="w-full bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl text-xs transition active:scale-98">
+          Kaydet
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. KATEGORİ MODALI -->
+  <div id="categoryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-xs rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="catModalTitle" class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Yeni Kategori</h3>
+        <button type="button" onclick="closeCategoryModal()" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="categoryForm" class="space-y-3">
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">Tür</label>
+          <select id="catType" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
+            <option value="expense">Gider (-)</option>
+            <option value="income">Gelir (+)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">Kategori Adı</label>
+          <input type="text" id="catName" required placeholder="Örn: Market & Gıda" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">Renk</label>
+            <input type="color" id="catColor" value="#6366f1" class="w-full h-8 bg-transparent border-0 cursor-pointer rounded-lg">
+          </div>
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">İkon</label>
+            <select id="catIcon" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none">
+              <option value="tag">Etiket</option>
+              <option value="shopping-cart">Market & Alışveriş</option>
+              <option value="utensils">Yemek & Kafe</option>
+              <option value="coffee">Kahve & İçecek</option>
+              <option value="home">Kira & Ev</option>
+              <option value="zap">Faturalar</option>
+              <option value="car">Ulaşım & Yakıt</option>
+              <option value="film">Sinema & Eğlence</option>
+              <option value="heart-pulse">Sağlık & Bakım</option>
+              <option value="book-open">Eğitim & Kitap</option>
+              <option value="shopping-bag">Giyim & Çanta</option>
+              <option value="briefcase">Maaş & İş</option>
+              <option value="laptop">Teknoloji & Freelance</option>
+              <option value="trending-up">Yatırım & Borsa</option>
+              <option value="key">Kira Geliri</option>
+              <option value="shield-check">Güvence & Sigorta</option>
+              <option value="dumbbell">Spor & Fitness</option>
+              <option value="plane">Seyahat & Tatil</option>
+              <option value="gift">Hediye</option>
+              <option value="wallet">Cüzdan</option>
+              <option value="more-horizontal">Diğer</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">Aylık Limit</label>
+          <input type="number" id="catBudget" placeholder="0" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+        </div>
+
+        <button type="submit" class="w-full py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl text-xs">
+          Kaydet
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. HEDEF MODALI -->
+  <div id="goalModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-xs rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="goalModalTitle" class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Yeni Hedef</h3>
+        <button onclick="closeGoalModal()" class="p-1 text-zinc-400">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="goalForm" class="space-y-3">
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">Hedef Adı</label>
+          <input type="text" id="goalName" required placeholder="Örn: Tatil" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">Hedef Tutar</label>
+            <input type="number" id="goalTargetAmount" required placeholder="0" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+          </div>
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">Mevcut</label>
+            <input type="number" id="goalCurrentAmount" placeholder="0" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">Hedef Tarihi</label>
+            <input type="date" id="goalDate" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200">
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-[11px] text-zinc-400">Tasarruf Payı (%)</label>
+              <span id="goalShareMaxLabel" class="text-[10px] text-indigo-500 font-semibold">Max: %100</span>
+            </div>
+            <input type="number" id="goalSharePercent" min="0" max="100" placeholder="Örn: 40" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200" oninput="validateGoalSharePercent(this)">
+            <div id="goalSharePercentHint" class="text-[9px] text-zinc-400 mt-0.5">Kalan boş pay: %100</div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">Renk</label>
+          <input type="color" id="goalColor" value="#10b981" class="w-full h-8 bg-transparent border-0 cursor-pointer">
+        </div>
+
+        <button type="submit" class="w-full py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl text-xs">
+          Kaydet
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. HEDEFE PARA EKLEME MODALI -->
+  <div id="depositModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-xs rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Birikime Ekle</h3>
+          <p id="depositGoalName" class="text-[11px] text-zinc-400 truncate"></p>
+        </div>
+        <button onclick="closeDepositModal()" class="p-1 text-zinc-400">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="depositForm" class="space-y-3">
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">Tutar</label>
+          <input type="number" step="0.01" id="depositAmount" required placeholder="0.00" class="w-full bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-base font-bold text-zinc-900 dark:text-zinc-100">
+        </div>
+
+        <button type="submit" class="w-full py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl text-xs">
+          Aktar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. iOS SAFARI REHBERİ -->
+  <div id="iosInstallModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-xs rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Ana Ekrana Ekle</h3>
+        <button onclick="closeIosInstallModal()" class="p-1 text-zinc-400">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      
+      <ol class="space-y-2 text-xs text-zinc-500 dark:text-zinc-400">
+        <li>1. Safari'nin altındaki <strong>Paylaş</strong> simgesine dokunun.</li>
+        <li>2. Menüde aşağı kaydırıp <strong>"Ana Ekrana Ekle"</strong>yi seçin.</li>
+        <li>3. Sağ üstteki <strong>Ekle</strong> butonuna basın.</li>
+      </ol>
+
+      <button onclick="closeIosInstallModal()" class="w-full mt-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold">
+        Tamam
+      </button>
+    </div>
+  </div>
+
+  <div id="browserInstallHelpModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-xs rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-xl">
+      <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100 mb-2">Uygulama Olarak Yükleme</div>
+      <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+        Tarayıcınızın adres çubuğundaki veya menüdeki "Yükle / Ana Ekrana Ekle" seçeneğini kullanabilirsiniz.
+      </p>
+      <button onclick="closeBrowserInstallHelpModal()" class="w-full mt-3 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold">
+        Anladım
+      </button>
+    </div>
+  </div>
+
+  <!-- 6. TASARRUFU HEDEFLERE DAĞITMA MODALI -->
+  <div id="distributeSavingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-md rounded-3xl p-5 sm:p-6 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-2xl">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Tasarrufu Hedeflere Dağıt</h3>
+          <p class="text-[11px] text-zinc-400">Sürgüleri kullanarak serbest tasarrufunuzu birikim kumbaralarınıza paylaştırın.</p>
+        </div>
+        <button onclick="closeDistributeSavingsModal()" class="p-1 text-zinc-400 hover:text-zinc-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Tasarruf Durum Özeti -->
+      <div class="grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/70 dark:border-zinc-800/80 my-2">
+        <div>
+          <div class="text-[10px] text-zinc-400 font-medium truncate">Net Tasarruf</div>
+          <div id="distributeNetSavingsTotal" class="text-xs font-bold text-zinc-800 dark:text-zinc-200 tabular-nums truncate">0,00 ₺</div>
+        </div>
+        <div>
+          <div class="text-[10px] text-zinc-400 font-medium truncate">Önceki Dağıtılan</div>
+          <div id="distributeAlreadyDistributed" class="text-xs font-bold text-zinc-500 tabular-nums truncate">0,00 ₺</div>
+        </div>
+        <div>
+          <div class="text-[10px] text-indigo-500 font-semibold truncate">Dağıtılabilir Havuz</div>
+          <div id="distributeTotalSavingsLabel" class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums truncate">0,00 ₺</div>
+        </div>
+      </div>
+
+      <!-- Toplam Dağıtım Oranı ve İlerleme Çubuğu (Toplam %100 Sınırı) -->
+      <div class="p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/50 dark:border-indigo-800/40 space-y-1.5 my-2">
+        <div class="flex items-center justify-between text-xs flex-wrap gap-1">
+          <span class="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+            <span>Dağıtım Oranı:</span>
+            <span id="distributeTotalPercentLabel" class="font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">%0 / %100</span>
+          </span>
+          <span id="distributeRemainingPercentLabel" class="text-[11px] font-medium text-zinc-500">Kalan: %100</span>
+        </div>
+        <div class="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden flex">
+          <div id="distributeProgressBar" class="h-full bg-indigo-600 transition-all duration-200" style="width: 0%;"></div>
+        </div>
+        <div class="flex items-center justify-between text-xs pt-1 flex-wrap gap-2">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-zinc-600 dark:text-zinc-400 font-medium">Dağıtılacak:</span>
+            <span id="distributeAllocatedAmountLabel" class="font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">0,00 ₺</span>
+            <span class="text-zinc-300 dark:text-zinc-700">/</span>
+            <span class="text-zinc-600 dark:text-zinc-400 font-medium">Kalan Dağıtılmamış:</span>
+            <span id="distributeRemainingAmountLabel" class="font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">0,00 ₺</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hızlı Bölüşüm Butonları -->
+      <div class="flex gap-2 my-2">
+        <button type="button" onclick="distributeSavingsEqually()" class="flex-1 py-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl text-[11px] font-semibold transition text-center active:scale-95">
+          ⚡ Eşit Böl (%100)
+        </button>
+        <button type="button" onclick="distributeSavingsByConfiguredShares()" class="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-xl text-[11px] font-semibold transition text-center active:scale-95 border border-indigo-200/50">
+          🎯 Hedefe Göre
+        </button>
+        <button type="button" onclick="resetDistributeSliders()" class="py-1.5 px-2.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-500 rounded-xl text-[11px] font-medium transition text-center" title="Sıfırla">
+          Sıfırla
+        </button>
+      </div>
+
+      <!-- Hedefler Listesi (Sürgüler + Elle Tutar/Yüzde Girişi) -->
+      <div id="distributeGoalsList" class="space-y-2.5 my-3 max-h-64 overflow-y-auto pr-1">
+        <!-- Dinamik doldurulur -->
+      </div>
+
+      <div class="pt-2 flex items-center justify-between gap-2 border-t border-zinc-100 dark:border-zinc-800">
+        <button id="btnResetPastDistribution" type="button" onclick="resetPastDistribution()" class="hidden text-[11px] font-medium text-rose-500 hover:underline">
+          Önceki Dağıtımı Sıfırla
+        </button>
+        <div class="flex gap-2 ml-auto w-full sm:w-auto">
+          <button type="button" onclick="closeDistributeSavingsModal()" class="flex-1 sm:flex-none px-4 py-2 text-xs font-semibold text-zinc-500 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800">
+            Vazgeç
+          </button>
+          <button id="btnConfirmDistribute" type="button" onclick="confirmDistributeSavings()" class="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-md transition active:scale-95">
+            Dağıtımı Tamamla
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. iOS KESTİRMELER REHBERİ MODALI -->
+  <div id="iosShortcutsGuideModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div class="card-clean w-full max-w-sm rounded-3xl p-5 border border-zinc-200 dark:border-zinc-800 animate-modal shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+            <i data-lucide="zap" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-bold text-zinc-900 dark:text-zinc-100">iPhone Hızlı İşlem & Kestirme</h3>
+            <p class="text-[10px] text-zinc-400">Safari açılmadan tam ekran çalıştırma</p>
+          </div>
+        </div>
+        <button onclick="closeIosShortcutsGuideModal()" class="p-1 text-zinc-400 hover:text-zinc-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- YÖNTEM 1 (Garantili & Doğrudan) -->
+      <div class="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl border border-emerald-500/20 text-xs space-y-1.5">
+        <div class="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+          <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0 text-emerald-600"></i>
+          <span>1. Yöntem: Simgeden Hızlı Eylem (Safari Açılmaz)</span>
+        </div>
+        <p class="text-[11px] text-emerald-700/90 dark:text-emerald-400 leading-relaxed">
+          Ana ekranınızdaki <strong>Bütçem</strong> simgesine parmağınızla <strong>1 saniye basılı tutun (Haptic Touch)</strong>. Açılan menüden doğrudan <strong>"Hızlı Gelir Ekle"</strong> veya <strong>"Hızlı Gider Ekle"</strong>ye dokunun. Asla Safari açılmaz, doğrudan uygulama içinde açılır!
+        </p>
+      </div>
+
+      <!-- YÖNTEM 2 (Apple Shortcuts Uygulaması - Sıfır Safari Yolu) -->
+      <div class="space-y-2.5 my-3 text-xs text-zinc-600 dark:text-zinc-300">
+        <div class="font-bold text-zinc-800 dark:text-zinc-200">
+          2. Yöntem: Apple Kestirmeler & Eylem Düğmesi (Action Button)
+        </div>
+        <ol class="space-y-2 pl-1 text-[11px]">
+          <li class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold flex items-center justify-center shrink-0 text-[10px]">1</span>
+            <span>Kestirmeler uygulamasında yeni kestirme oluşturup <strong>"+"</strong> butonuna basın.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold flex items-center justify-center shrink-0 text-[10px]">2</span>
+            <span>Arama kutusuna <strong>"Bütçem"</strong> yazın ve çıkan listeden <strong>"Bütçem Uygulamasını Aç"</strong> (Open App) eylemini seçin. (Kesinlikle "URL Aç" seçmeyin, o Safari'yi açar).</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold flex items-center justify-center shrink-0 text-[10px]">3</span>
+            <span>Bu kestirmeyi iPhone 15/16 Pro <strong>Eylem Düğmesine (Action Button)</strong>, Kilit Ekranına veya Siri sesli komutuna bağlayın!</span>
+          </li>
+        </ol>
+      </div>
+
+      <!-- Doğrudan Test / Hızlı Ekleme -->
+      <div class="space-y-2 p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 text-xs">
+        <div class="text-[11px] font-bold text-zinc-600 dark:text-zinc-300">Anında Aç / Test Et:</div>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="closeIosShortcutsGuideModal(); openTransactionModal(null, 'income');" class="py-2 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-xs">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Gelir Ekle</span>
+          </button>
+          <button type="button" onclick="closeIosShortcutsGuideModal(); openTransactionModal(null, 'expense');" class="py-2 px-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-xs">
+            <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+            <span>Gider Ekle</span>
+          </button>
+        </div>
+      </div>
+
+      <button onclick="closeIosShortcutsGuideModal()" class="w-full mt-3 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold">
+        Tamam, Anladım
+      </button>
+    </div>
+  </div>
+
+  <!-- TOAST BİLDİRİM -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-1.5 pointer-events-none max-w-xs"></div>
+
+  <!-- SCRİPTLER -->
+  <script src="js/store.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/pwa.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
