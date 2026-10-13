@@ -53,6 +53,13 @@ document.addEventListener('DOMContentLoaded', () => {
   } else if (params.get('tab')) {
     switchTab(params.get('tab'));
   }
+
+  // URL parametrelerini temizle ki sayfa yenilendiğinde tekrar açılmasın
+  if (action || type || params.get('tab')) {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
 });
 
 function initTheme() {
@@ -304,24 +311,29 @@ function renderSummaryCards(periodTxs) {
     if (monthlySavingsEl) {
       monthlySavingsEl.classList.remove('tracking-widest');
       if (netBalance >= 0) {
-        if (distributed > 0) {
-          monthlySavingsEl.textContent = formatMoney(remainingSavings);
-          monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums truncate';
-          if (monthlySavingsDistributedEl) {
-            monthlySavingsDistributedEl.textContent = `${formatMoney(distributed)} dağıtıldı`;
-            monthlySavingsDistributedEl.classList.remove('hidden');
+        monthlySavingsEl.textContent = formatMoney(netBalance);
+        monthlySavingsEl.className = 'text-xs sm:text-sm font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums truncate';
+        
+        if (monthlySavingsDistributedEl) {
+          if (remainingSavings > 0) {
+            monthlySavingsDistributedEl.textContent = `● ${formatMoney(remainingSavings)} boşta`;
+            monthlySavingsDistributedEl.className = 'text-[9px] sm:text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate mt-0.5';
+          } else if (distributed > 0) {
+            monthlySavingsDistributedEl.textContent = '✓ Tümü dağıtıldı';
+            monthlySavingsDistributedEl.className = 'text-[9px] sm:text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 truncate mt-0.5';
+          } else {
+            monthlySavingsDistributedEl.textContent = '0,00 ₺ boşta';
+            monthlySavingsDistributedEl.className = 'text-[9px] sm:text-[10px] font-medium text-zinc-400 truncate mt-0.5';
           }
-          if (savingsRateEl) savingsRateEl.textContent = `(Kalan)`;
-        } else {
-          monthlySavingsEl.textContent = `+${formatMoney(netBalance)}`;
-          monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums truncate';
-          if (monthlySavingsDistributedEl) monthlySavingsDistributedEl.classList.add('hidden');
-          if (savingsRateEl) savingsRateEl.textContent = `(%${Math.max(0, savingsRate).toFixed(0)})`;
         }
+        if (savingsRateEl) savingsRateEl.textContent = `(%${Math.max(0, savingsRate).toFixed(0)})`;
       } else {
         monthlySavingsEl.textContent = `-${formatMoney(Math.abs(netBalance))}`;
         monthlySavingsEl.className = 'text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 tabular-nums truncate';
-        if (monthlySavingsDistributedEl) monthlySavingsDistributedEl.classList.add('hidden');
+        if (monthlySavingsDistributedEl) {
+          monthlySavingsDistributedEl.textContent = '';
+          monthlySavingsDistributedEl.className = 'hidden';
+        }
         if (savingsRateEl) savingsRateEl.textContent = '(Açık)';
       }
     }
@@ -332,21 +344,8 @@ function renderSummaryCards(periodTxs) {
   const distributeButtonActionText = document.getElementById('distributeButtonActionText');
 
   if (distributeAvailableBadge) {
-    if (isBalanceHidden) {
-      distributeAvailableBadge.textContent = '•••••••• ₺';
-      distributeAvailableBadge.className = 'text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/20 text-white shadow-sm';
-    } else {
-      if (remainingSavings > 0) {
-        distributeAvailableBadge.textContent = `${formatMoney(remainingSavings)} Boşta`;
-        distributeAvailableBadge.className = 'text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white text-indigo-900 shadow-sm tabular-nums';
-      } else if (distributed > 0) {
-        distributeAvailableBadge.textContent = 'Dağıtıldı ✓';
-        distributeAvailableBadge.className = 'text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 shadow-sm tabular-nums';
-      } else {
-        distributeAvailableBadge.textContent = '0,00 ₺';
-        distributeAvailableBadge.className = 'text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/20 text-white shadow-sm tabular-nums';
-      }
-    }
+    distributeAvailableBadge.textContent = '';
+    distributeAvailableBadge.className = 'hidden';
   }
 
   if (distributeButtonSubtext) {
@@ -1568,6 +1567,28 @@ function resetPastDistribution() {
   }
 }
 
+// --- HIZLI KESTİRMELER & ŞABLONLAR ---
+function quickAddPreset(type, categoryId, note, defaultAmount) {
+  openTransactionModal(null, type);
+  if (categoryId) {
+    const catEl = document.getElementById('txCategory');
+    if (catEl) catEl.value = categoryId;
+  }
+  if (note) {
+    const noteEl = document.getElementById('txNote');
+    if (noteEl) noteEl.value = note;
+  }
+  if (defaultAmount) {
+    const amountEl = document.getElementById('txAmount');
+    if (amountEl) {
+      amountEl.value = defaultAmount;
+      amountEl.focus();
+      amountEl.select();
+    }
+  }
+}
+window.quickAddPreset = quickAddPreset;
+
 // --- iOS KESTİRMELER (SHORTCUTS) YÖNETİMİ ---
 function copyShortcutUrl(type) {
   const baseUrl = window.location.origin + window.location.pathname;
@@ -1575,7 +1596,7 @@ function copyShortcutUrl(type) {
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(fullUrl).then(() => {
-      showToast(`${type === 'income' ? 'Gelir' : 'Gider'} bağlantısı kopyalandı! Kestirmelerde Safari açılmaması için 'Web Sayfasını Göster' seçin 💡`, 'success');
+      showToast(`${type === 'income' ? 'Gelir' : 'Gider'} bağlantısı kopyalandı! Kestirmeler uygulamasında 'Bütçem Uygulamasını Aç' eylemini seçebilirsiniz ⚡`, 'success');
     }).catch(() => {
       fallbackCopyText(fullUrl, type);
     });
@@ -1593,9 +1614,9 @@ function fallbackCopyText(text, type) {
   textArea.select();
   try {
     document.execCommand('copy');
-    showToast(`${type === 'income' ? 'Gelir' : 'Gider'} bağlantısı kopyalandı! Kestirmelerde Safari açılmaması için 'Web Sayfasını Göster' seçin 💡`, 'success');
+    showToast(`${type === 'income' ? 'Gelir' : 'Gider'} bağlantısı kopyalandı! Kestirmeler uygulamasında 'Bütçem Uygulamasını Aç' eylemini seçebilirsiniz ⚡`, 'success');
   } catch (err) {
-    showToast('Kopyalama başarısız oldu, lütfen linki manuel kopyalayın.', 'error');
+    showToast('Kopyalama başarısız oldu.', 'error');
   }
   document.body.removeChild(textArea);
 }
