@@ -37,9 +37,9 @@ function generateDemoTransactions() {
   const m = String(today.getMonth() + 1).padStart(2, '0');
   
   return [
-    { id: 'tx-1', type: 'income', amount: 48000, categoryId: 'cat-maas', date: `${y}-${m}-01`, note: 'Aylık Net Maaş', paymentMethod: 'transfer' },
-    { id: 'tx-2', type: 'income', amount: 9500, categoryId: 'cat-ek-gelir', date: `${y}-${m}-05`, note: 'Freelance Web Tasarım Projesi', paymentMethod: 'transfer' },
-    { id: 'tx-3', type: 'expense', amount: 15000, categoryId: 'cat-kira', date: `${y}-${m}-02`, note: 'Ev Kirası', paymentMethod: 'transfer' },
+    { id: 'tx-1', type: 'income', amount: 48000, categoryId: 'cat-maas', date: `${y}-${m}-01`, note: 'Aylık Net Maaş', paymentMethod: 'card' },
+    { id: 'tx-2', type: 'income', amount: 9500, categoryId: 'cat-ek-gelir', date: `${y}-${m}-05`, note: 'Freelance Web Tasarım Projesi', paymentMethod: 'card' },
+    { id: 'tx-3', type: 'expense', amount: 15000, categoryId: 'cat-kira', date: `${y}-${m}-02`, note: 'Ev Kirası', paymentMethod: 'card' },
     { id: 'tx-4', type: 'expense', amount: 2450, categoryId: 'cat-market', date: `${y}-${m}-03`, note: 'Haftalık Süpermarket Alışverişi', paymentMethod: 'card' },
     { id: 'tx-5', type: 'expense', amount: 1120, categoryId: 'cat-fatura', date: `${y}-${m}-04`, note: 'Elektrik & Doğalgaz', paymentMethod: 'card' },
     { id: 'tx-6', type: 'expense', amount: 1400, categoryId: 'cat-ulasim', date: `${y}-${m}-06`, note: 'Akaryakıt Dolumu', paymentMethod: 'card' },

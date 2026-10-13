@@ -17,6 +17,17 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// iOS Standalone modunda link tıklamalarının Safari'de açılmasını önle
+if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a');
+    if (a && a.href && a.hostname === window.location.hostname && !a.target) {
+      e.preventDefault();
+      window.location.assign(a.href);
+    }
+  }, false);
+}
+
 // Android / Chrome "beforeinstallprompt" Yakalama
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();

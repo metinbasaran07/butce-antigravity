@@ -3,8 +3,8 @@
   "short_name": "Bütçem",
   "description": "Gelir, gider, kategori ve birikimlerinizi kolayca takip edin. Verileriniz cihazınızda güvende kalır.",
   "id": "/",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0f172a",
@@ -34,21 +34,21 @@
       "name": "Hızlı Gelir Ekle",
       "short_name": "Gelir Ekle",
       "description": "Yeni gelir kaydı oluştur",
-      "url": "./?action=income",
+      "url": "/?action=income",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Hızlı Gider Ekle",
       "short_name": "Gider Ekle",
       "description": "Yeni harcama kaydı oluştur",
-      "url": "./?action=expense",
+      "url": "/?action=expense",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Birikim Hedefleri",
       "short_name": "Birikim",
       "description": "Birikim hedefleri ve tasarruf dağıtımı",
-      "url": "./?tab=savings",
+      "url": "/?tab=savings",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
