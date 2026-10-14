@@ -44,9 +44,9 @@
         <div>
           <h1 class="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
             <span>Hızlı Gider Ekle</span>
-            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+            <span id="popupCloudStatusPill" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Senkronize
+              <span>Bulut Senkronize ⚡</span>
             </span>
           </h1>
           <p class="text-[10px] text-zinc-400">Apple Kestirmeler & Eylem Düğmesi Modu</p>
@@ -194,6 +194,12 @@
 
   <!-- Scriptler -->
   <script src="js/store.js"></script>
+  <script type="module">
+    import * as firebaseSync from './js/firebase-sync.js';
+    window.firebaseSync = firebaseSync;
+    window.dispatchEvent(new CustomEvent('firebaseSyncReady', { detail: firebaseSync }));
+  </script>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       if (window.lucide) window.lucide.createIcons();
@@ -205,22 +211,49 @@
 
       const store = window.store;
 
+      // URL parametrelerini oku (Apple Shortcuts ve Vault girişi için)
+      const params = new URLSearchParams(window.location.search);
+      const urlVault = params.get('vault');
+      const urlAmount = params.get('amount');
+      const urlCategory = params.get('category') || params.get('categoryId');
+      const urlNote = params.get('note');
+
+      const currentVaultId = urlVault || localStorage.getItem('butcem_cloud_vault_id') || 'vlt_default';
+
       // Önce paylaşılan önbellekten (PWA verilerinden) senkronize et
       store.syncFromSharedCache().then(() => {
         renderCategories();
       });
 
-      const currency = store.data.settings.currency || '₺';
-      const transferFee = store.data.settings.transferFee || 15.00;
+      // Firebase senkronizasyonu hazır olduğunda buluttaki kategorileri ve ayarları yükle
+      function attachFirebaseListener() {
+        if (window.firebaseSync && window.firebaseSync.listenToVault) {
+          try {
+            window.firebaseSync.listenToVault((cloudData) => {
+              if (cloudData) {
+                store.mergeCloudData(cloudData, () => {
+                  renderCategories();
+                  updateFeeDisplay();
+                });
+              }
+            }, currentVaultId);
+          } catch (e) {}
+        }
+      }
 
-      const feeEl = document.getElementById('popupIbanFeeAmount');
-      if (feeEl) feeEl.textContent = `+${transferFee.toFixed(2)} ${currency}`;
+      if (window.firebaseSync) {
+        attachFirebaseListener();
+      } else {
+        window.addEventListener('firebaseSyncReady', attachFirebaseListener);
+      }
 
-      // URL parametrelerini oku (Apple Shortcuts girişleri için)
-      const params = new URLSearchParams(window.location.search);
-      const urlAmount = params.get('amount');
-      const urlCategory = params.get('category') || params.get('categoryId');
-      const urlNote = params.get('note');
+      function updateFeeDisplay() {
+        const currency = store.data.settings.currency || '₺';
+        const transferFee = store.data.settings.transferFee || 15.00;
+        const feeEl = document.getElementById('popupIbanFeeAmount');
+        if (feeEl) feeEl.textContent = `+${transferFee.toFixed(2)} ${currency}`;
+      }
+      updateFeeDisplay();
 
       // Kategorileri yükle (sadece gider)
       let categories = store.data.categories.filter(c => c.type === 'expense');
@@ -298,6 +331,7 @@
         const noteVal = noteInput.value.trim();
         const paymentMethod = document.querySelector('input[name="popupPaymentMethod"]:checked')?.value || 'card';
         const hasTransferFee = document.getElementById('popupIbanFee').checked;
+        const transferFee = store.data.settings.transferFee || 15.00;
 
         const tx = {
           type: 'expense',
@@ -307,17 +341,25 @@
           note: noteVal,
           paymentMethod: paymentMethod,
           hasTransferFee: hasTransferFee,
-          transferFeeAmount: hasTransferFee ? transferFee : 0
+          transferFeeAmount: hasTransferFee ? transferFee : 0,
+          createdAt: new Date().toISOString()
         };
 
-        // Store'a kaydet
+        // 1. Yerel cihaza kaydet
         store.addTransaction(tx);
 
-        // Diğer sekmelere / ana uygulamaya anında senkronizasyon bildir
+        // 2. Diğer sekmelere anlık bildirim
         try {
           const channel = new BroadcastChannel('butcem_sync');
           channel.postMessage({ type: 'NEW_TRANSACTION', transaction: tx });
         } catch (err) {}
+
+        // 3. DOĞRUDAN FIRESTORE CLOUD VAULT'A GÖNDER! (PWA anında alır)
+        if (window.firebaseSync && typeof window.firebaseSync.addExpenseDirectlyToCloud === 'function') {
+          window.firebaseSync.addExpenseDirectlyToCloud(tx, currentVaultId).catch(err => {
+            console.warn('Firebase cloud sync error:', err);
+          });
+        }
 
         // Dokunsal titreşim (Haptic)
         if (navigator.vibrate) {

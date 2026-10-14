@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 3 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidVault(data, vaultId) {
+      return data.keys().hasAll(['vaultId', 'updatedAt']) &&
+        data.keys().hasOnly(['vaultId', 'transactions', 'categories', 'savingsGoals', 'distributedSavings', 'settings', 'updatedAt', 'ownerUid']) &&
+        data.vaultId == vaultId &&
+        data.updatedAt is string && data.updatedAt.size() <= 64 &&
+        (!('transactions' in data) || (data.transactions is list && data.transactions.size() <= 2000)) &&
+        (!('categories' in data) || (data.categories is list && data.categories.size() <= 100)) &&
+        (!('savingsGoals' in data) || (data.savingsGoals is list && data.savingsGoals.size() <= 100)) &&
+        (!('distributedSavings' in data) || data.distributedSavings is map) &&
+        (!('settings' in data) || data.settings is map);
+    }
+
+    // Vaults storage for PWA, Safari, and Apple Shortcut cross-sync
+    match /vaults/{vaultId} {
+      // Individual document get allowed with hardened ID validation
+      allow get: if isValidId(vaultId);
+      
+      // Collection list queries are strictly forbidden to prevent vault enumeration
+      allow list: if false;
+
+      // Vault creation with strict schema validation
+      allow create: if isValidId(vaultId) && isValidVault(incoming(), vaultId);
+
+      // Vault update with immutable vaultId guard and schema validation
+      allow update: if isValidId(vaultId) && 
+                       isValidVault(incoming(), vaultId) && 
+                       incoming().vaultId == existing().vaultId;
+
+      // Deletion is blocked from client SDK
+      allow delete: if false;
+    }
+  }
+}

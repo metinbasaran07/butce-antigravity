@@ -19,7 +19,8 @@ const itemsToCopy = [
   'sw.js',
   'css',
   'js',
-  'icons'
+  'icons',
+  'firebase-applet-config.json'
 ];
 
 for (const item of itemsToCopy) {

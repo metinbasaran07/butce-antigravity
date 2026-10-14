@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "vault": {
+      "title": "Vault",
+      "description": "User cloud budget vault containing all transactions, categories, goals, and settings",
+      "type": "object",
+      "properties": {
+        "vaultId": {
+          "type": "string",
+          "description": "Unique identifier for the user sync vault",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "transactions": {
+          "type": "array",
+          "description": "List of user expense and income transactions"
+        },
+        "categories": {
+          "type": "array",
+          "description": "Customizable income and expense categories"
+        },
+        "savingsGoals": {
+          "type": "array",
+          "description": "User savings targets and progress"
+        },
+        "distributedSavings": {
+          "type": "object",
+          "description": "Monthly distributed savings allocations"
+        },
+        "settings": {
+          "type": "object",
+          "description": "User preferences including currency, transfer fee, and theme"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update",
+          "maxLength": 64
+        }
+      },
+      "required": ["vaultId", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/vaults/{vaultId}": {
+      "schema": "vault",
+      "description": "Cloud storage vault for real-time synchronization between PWA and iOS Action Button shortcut"
+    }
+  }
+}

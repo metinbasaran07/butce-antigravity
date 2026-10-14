@@ -86,7 +86,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, 3000);
 
-  // 4. Storage ve BroadcastChannel anlık bildirim dinleyicisi
+  // 4. Firebase Firestore Canlı Bulut Dinleyicisi
+  function setupFirebaseSync() {
+    if (!window.firebaseSync) return;
+    if (typeof updateCloudSyncUI === 'function') updateCloudSyncUI();
+
+    try {
+      window.firebaseSync.listenToVault((cloudData) => {
+        const changed = window.store.mergeCloudData(cloudData, ({ newTxCount }) => {
+          renderApp();
+          if (newTxCount > 0) {
+            showToast(`${newTxCount} yeni kestirme harcaması buluttan senkronize edildi! ⚡`, 'success');
+            if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+          }
+        });
+        if (changed) {
+          renderApp();
+          if (typeof updateCloudSyncUI === 'function') updateCloudSyncUI();
+        }
+      });
+
+      // İlk yerel veriyi buluta eşitle
+      window.store.syncToCloud();
+
+      // Auth durumunu dinle
+      if (window.firebaseSync.auth) {
+        window.firebaseSync.auth.onAuthStateChanged((user) => {
+          if (typeof updateGoogleAuthUI === 'function') updateGoogleAuthUI(user);
+        });
+      }
+    } catch (err) {
+      console.warn('Firebase kurulum dinleme uyarısı:', err);
+    }
+  }
+
+  if (window.firebaseSync) {
+    setupFirebaseSync();
+  } else {
+    window.addEventListener('firebaseSyncReady', () => {
+      setupFirebaseSync();
+    });
+  }
+
+  // 5. Storage ve BroadcastChannel anlık bildirim dinleyicisi
   window.addEventListener('storage', (e) => {
     if (e.key === 'butcem_app_data_v1') {
       window.store.data = window.store.load();

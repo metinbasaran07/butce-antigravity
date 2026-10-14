@@ -141,6 +141,91 @@ class Store {
         }).catch(() => {});
       }
     } catch (e) {}
+
+    // 4. Firebase Firestore Bulut Senkronizasyonu
+    this.syncToCloud();
+  }
+
+  async syncToCloud() {
+    if (window.firebaseSync && typeof window.firebaseSync.pushToFirestore === 'function') {
+      try {
+        await window.firebaseSync.pushToFirestore(this.data);
+      } catch (e) {
+        console.warn('Firebase Firestore senkronizasyon bildirimi:', e);
+      }
+    }
+  }
+
+  mergeCloudData(cloudData, onUpdate) {
+    if (!cloudData || !Array.isArray(cloudData.transactions)) return false;
+    let hasChanges = false;
+    let newTxCount = 0;
+
+    const hasRealCloud = cloudData.transactions.some(t => !t.isDemo);
+    if (hasRealCloud && this.data.transactions.some(t => t.isDemo)) {
+      this.data.transactions = this.data.transactions.filter(t => !t.isDemo);
+      hasChanges = true;
+    }
+
+    const existingIds = new Set(this.data.transactions.map(t => t.id));
+    const incomingTxs = [];
+
+    for (const cTx of cloudData.transactions) {
+      if (!existingIds.has(cTx.id)) {
+        incomingTxs.push(cTx);
+        existingIds.add(cTx.id);
+        hasChanges = true;
+        if (!cTx.isDemo) newTxCount++;
+      }
+    }
+
+    if (incomingTxs.length > 0) {
+      this.data.transactions = [...incomingTxs, ...this.data.transactions];
+      this.data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    // Kategorileri birleştir
+    if (Array.isArray(cloudData.categories) && cloudData.categories.length > 0) {
+      const catMap = new Map(this.data.categories.map(c => [c.id, c]));
+      for (const cCat of cloudData.categories) {
+        if (!catMap.has(cCat.id)) {
+          this.data.categories.push(cCat);
+          hasChanges = true;
+        }
+      }
+    }
+
+    // Birikim hedeflerini birleştir
+    if (Array.isArray(cloudData.savingsGoals) && cloudData.savingsGoals.length > 0) {
+      const goalMap = new Map(this.data.savingsGoals.map(g => [g.id, g]));
+      for (const cGoal of cloudData.savingsGoals) {
+        if (!goalMap.has(cGoal.id)) {
+          this.data.savingsGoals.push(cGoal);
+          hasChanges = true;
+        }
+      }
+    }
+
+    // Ayarları güncelle (varsa transferFee vs)
+    if (cloudData.settings && typeof cloudData.settings === 'object') {
+      if (cloudData.settings.transferFee && cloudData.settings.transferFee !== this.data.settings.transferFee) {
+        this.data.settings.transferFee = cloudData.settings.transferFee;
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      } catch (e) {}
+
+      if (typeof onUpdate === 'function') {
+        onUpdate({ newTxCount });
+      }
+      return true;
+    }
+
+    return false;
   }
 
   async syncFromSharedCache(onUpdate) {
