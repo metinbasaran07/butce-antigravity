@@ -37,21 +37,25 @@ function generateDemoTransactions() {
   const m = String(today.getMonth() + 1).padStart(2, '0');
   
   return [
-    { id: 'tx-1', type: 'income', amount: 48000, categoryId: 'cat-maas', date: `${y}-${m}-01`, note: 'Aylık Net Maaş', paymentMethod: 'card' },
-    { id: 'tx-2', type: 'income', amount: 9500, categoryId: 'cat-ek-gelir', date: `${y}-${m}-05`, note: 'Freelance Web Tasarım Projesi', paymentMethod: 'card' },
-    { id: 'tx-3', type: 'expense', amount: 15000, categoryId: 'cat-kira', date: `${y}-${m}-02`, note: 'Ev Kirası', paymentMethod: 'card' },
-    { id: 'tx-4', type: 'expense', amount: 2450, categoryId: 'cat-market', date: `${y}-${m}-03`, note: 'Haftalık Süpermarket Alışverişi', paymentMethod: 'card' },
-    { id: 'tx-5', type: 'expense', amount: 1120, categoryId: 'cat-fatura', date: `${y}-${m}-04`, note: 'Elektrik & Doğalgaz', paymentMethod: 'card' },
-    { id: 'tx-6', type: 'expense', amount: 1400, categoryId: 'cat-ulasim', date: `${y}-${m}-06`, note: 'Akaryakıt Dolumu', paymentMethod: 'card' },
-    { id: 'tx-7', type: 'expense', amount: 850, categoryId: 'cat-yemek', date: `${y}-${m}-07`, note: 'Arkadaşlarla Akşam Yemeği', paymentMethod: 'card' },
-    { id: 'tx-8', type: 'expense', amount: 1950, categoryId: 'cat-market', date: `${y}-${m}-08`, note: 'Şarküteri ve Manav Alışverişi', paymentMethod: 'card' },
-    { id: 'tx-9', type: 'expense', amount: 450, categoryId: 'cat-eglence', date: `${y}-${m}-08`, note: 'Sinema Bileti ve Atıştırmalık', paymentMethod: 'cash' },
+    { id: 'tx-1', type: 'income', amount: 48000, categoryId: 'cat-maas', date: `${y}-${m}-01`, note: 'Aylık Net Maaş', paymentMethod: 'card', isDemo: true },
+    { id: 'tx-2', type: 'income', amount: 9500, categoryId: 'cat-ek-gelir', date: `${y}-${m}-05`, note: 'Freelance Web Tasarım Projesi', paymentMethod: 'card', isDemo: true },
+    { id: 'tx-3', type: 'expense', amount: 15000, categoryId: 'cat-kira', date: `${y}-${m}-02`, note: 'Ev Kirası', paymentMethod: 'card', isDemo: true },
+    { id: 'tx-4', type: 'expense', amount: 2450, categoryId: 'cat-market', date: `${y}-${m}-03`, note: 'Haftalık Süpermarket Alışverişi', paymentMethod: 'card', isDemo: true },
+    { id: 'tx-5', type: 'expense', amount: 1120, categoryId: 'cat-fatura', date: `${y}-${m}-04`, note: 'Elektrik & Doğalgaz', paymentMethod: 'card', isDemo: true },
+    { id: 'tx-6', type: 'expense', amount: 1400, categoryId: 'cat-ulasim', date: `${y}-${m}-06`, note: 'Akaryakıt Dolumu', paymentMethod: 'card', isDemo: true },
+    { id: 'tx-7', type: 'expense', amount: 850, categoryId: 'cat-yemek', date: `${y}-${m}-07`, note: 'Arkadaşlarla Akşam Yemeği', paymentMethod: 'card', isDemo: true },
+    { id: 'tx-8', type: 'expense', amount: 1950, categoryId: 'cat-market', date: `${y}-${m}-08`, note: 'Şarküteri ve Manav Alışverişi', paymentMethod: 'card', isDemo: true },
+    { id: 'tx-9', type: 'expense', amount: 450, categoryId: 'cat-eglence', date: `${y}-${m}-08`, note: 'Sinema Bileti ve Atıştırmalık', paymentMethod: 'cash', isDemo: true },
   ];
 }
 
 class Store {
   constructor() {
     this.data = this.load();
+    // İlk açılışta hemen paylaşılan önbelleğe de yaz
+    setTimeout(() => {
+      this.syncToSharedCache();
+    }, 50);
   }
 
   load() {
@@ -96,9 +100,148 @@ class Store {
   save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      this.syncToSharedCache();
     } catch (e) {
       console.error('LocalStorage kaydetme hatası:', e);
     }
+  }
+
+  async syncToSharedCache() {
+    // 1. Cache Storage (iOS Safari & PWA WebClip köprüsü)
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open('butcem_shared_store_v1');
+        const payload = {
+          updatedAt: Date.now(),
+          data: this.data
+        };
+        await cache.put('/api/shared_state.json', new Response(JSON.stringify(payload), {
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      } catch (e) {
+        console.warn('Cache Storage senkronizasyon hatası:', e);
+      }
+    }
+
+    // 2. BroadcastChannel (Sekmeler arası anlık bildirim)
+    try {
+      if ('BroadcastChannel' in window) {
+        const channel = new BroadcastChannel('butcem_sync');
+        channel.postMessage({ type: 'STATE_UPDATED', timestamp: Date.now() });
+      }
+    } catch (e) {}
+
+    // 3. Sunucu Senkronizasyonu (varsa)
+    try {
+      if (window.location.protocol.startsWith('http')) {
+        fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.data)
+        }).catch(() => {});
+      }
+    } catch (e) {}
+  }
+
+  async syncFromSharedCache(onUpdate) {
+    let hasChanges = false;
+    let newTxCount = 0;
+
+    // 1. Önce Cache Storage'dan kontrol et (iOS Safari & PWA paylaşımı)
+    let remoteData = null;
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open('butcem_shared_store_v1');
+        const response = await cache.match('/api/shared_state.json');
+        if (response) {
+          const payload = await response.json();
+          if (payload && payload.data) {
+            remoteData = payload.data;
+          }
+        }
+      } catch (e) {
+        console.warn('Cache Storage okuma hatası:', e);
+      }
+    }
+
+    // 2. Eğer sunucu varsa ve remoteData boşsa
+    if (!remoteData && window.location.protocol.startsWith('http')) {
+      try {
+        const res = await fetch('/api/sync').then(r => r.json()).catch(() => null);
+        if (res && res.data) {
+          remoteData = res.data;
+        }
+      } catch (e) {}
+    }
+
+    if (!remoteData) return false;
+
+    // Birleştirme (Merge) Algoritması:
+    // A. İşlemleri (Transactions) birleştir
+    if (Array.isArray(remoteData.transactions)) {
+      const hasRealRemote = remoteData.transactions.some(t => !t.isDemo);
+      const onlyHasLocalDemo = this.data.transactions.length > 0 && this.data.transactions.every(t => t.isDemo);
+
+      if (hasRealRemote && onlyHasLocalDemo) {
+        this.data.transactions = [];
+      }
+
+      const existingIds = new Set(this.data.transactions.map(t => t.id));
+      const incomingTxs = [];
+
+      for (const rTx of remoteData.transactions) {
+        if (rTx.isDemo && this.data.transactions.some(t => !t.isDemo)) {
+          continue;
+        }
+        if (!existingIds.has(rTx.id)) {
+          incomingTxs.push(rTx);
+          existingIds.add(rTx.id);
+          hasChanges = true;
+          if (!rTx.isDemo) newTxCount++;
+        }
+      }
+
+      if (incomingTxs.length > 0) {
+        this.data.transactions = [...incomingTxs, ...this.data.transactions];
+        this.data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+      }
+    }
+
+    // B. Kategorileri birleştir
+    if (Array.isArray(remoteData.categories)) {
+      const catMap = new Map(this.data.categories.map(c => [c.id, c]));
+      for (const rCat of remoteData.categories) {
+        if (!catMap.has(rCat.id)) {
+          this.data.categories.push(rCat);
+          hasChanges = true;
+        }
+      }
+    }
+
+    // C. Birikim hedeflerini birleştir
+    if (Array.isArray(remoteData.savingsGoals)) {
+      const goalMap = new Map(this.data.savingsGoals.map(g => [g.id, g]));
+      for (const rGoal of remoteData.savingsGoals) {
+        if (!goalMap.has(rGoal.id)) {
+          this.data.savingsGoals.push(rGoal);
+          hasChanges = true;
+        }
+      }
+    }
+
+    if (hasChanges) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+        this.syncToSharedCache();
+      } catch (e) {}
+
+      if (typeof onUpdate === 'function') {
+        onUpdate({ newTxCount });
+      }
+      return true;
+    }
+
+    return false;
   }
 
   getCurrentMonthString() {

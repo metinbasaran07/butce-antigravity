@@ -8,6 +8,23 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(express.json({ limit: '10mb' }));
+
+// In-memory sync state
+let sharedSyncData = null;
+
+app.get('/api/sync', (req, res) => {
+  res.json({ success: true, data: sharedSyncData });
+});
+
+app.post('/api/sync', (req, res) => {
+  if (req.body) {
+    sharedSyncData = req.body;
+    return res.json({ success: true, syncedAt: new Date().toISOString() });
+  }
+  res.status(400).json({ success: false, error: 'Empty payload' });
+});
+
 // Serve static assets from public or root
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));

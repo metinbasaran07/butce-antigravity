@@ -38,7 +38,55 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Storage ve BroadcastChannel dinleyici: Kestirme popup'ından gelen yeni harcamaları anında ekrana yansıt
+  // 1. Sayfa ilk açıldığında paylaşılan önbellekten kontrol et ve birleştir
+  window.store.syncFromSharedCache(({ newTxCount }) => {
+    renderApp();
+    if (newTxCount > 0) {
+      showToast(`${newTxCount} kestirme harcaması senkronize edildi! ⚡`, 'success');
+    }
+  });
+
+  // 2. Kullanıcı popup'tan veya başka bir sekmeden PWA'ya döndüğünde anında eşitle
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      window.store.syncFromSharedCache(({ newTxCount }) => {
+        renderApp();
+        if (newTxCount > 0) {
+          showToast(`${newTxCount} kestirme harcaması senkronize edildi! ⚡`, 'success');
+        }
+      });
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    window.store.syncFromSharedCache(({ newTxCount }) => {
+      renderApp();
+      if (newTxCount > 0) {
+        showToast(`${newTxCount} kestirme harcaması senkronize edildi! ⚡`, 'success');
+      }
+    });
+  });
+
+  window.addEventListener('pageshow', () => {
+    window.store.syncFromSharedCache(({ newTxCount }) => {
+      renderApp();
+      if (newTxCount > 0) {
+        showToast(`${newTxCount} kestirme harcaması senkronize edildi! ⚡`, 'success');
+      }
+    });
+  });
+
+  // 3. Düzenli arka plan eşitleme (her 3 saniyede bir sessiz kontrol)
+  setInterval(() => {
+    window.store.syncFromSharedCache(({ newTxCount }) => {
+      renderApp();
+      if (newTxCount > 0) {
+        showToast(`${newTxCount} kestirme harcaması senkronize edildi! ⚡`, 'success');
+      }
+    });
+  }, 3000);
+
+  // 4. Storage ve BroadcastChannel anlık bildirim dinleyicisi
   window.addEventListener('storage', (e) => {
     if (e.key === 'butcem_app_data_v1') {
       window.store.data = window.store.load();
@@ -48,12 +96,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   try {
     const syncChannel = new BroadcastChannel('butcem_sync');
-    syncChannel.onmessage = (event) => {
-      if (event.data && event.data.type === 'NEW_TRANSACTION') {
-        window.store.data = window.store.load();
+    syncChannel.onmessage = () => {
+      window.store.syncFromSharedCache(({ newTxCount }) => {
         renderApp();
-        showToast('Kestirme üzerinden yeni gider senkronize edildi! ⚡', 'success');
-      }
+        if (newTxCount > 0) {
+          showToast(`${newTxCount} kestirme harcaması senkronize edildi! ⚡`, 'success');
+        }
+      });
     };
   } catch (err) {}
 
@@ -1699,6 +1748,37 @@ function closeActionButtonGuideModal() {
   if (modal) modal.classList.add('hidden');
 }
 window.closeActionButtonGuideModal = closeActionButtonGuideModal;
+
+async function triggerManualSync() {
+  const btn = document.getElementById('btnManualSync');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('opacity-70');
+  }
+
+  showToast('Senkronizasyon kontrol ediliyor...', 'info');
+
+  let updatedCount = 0;
+  const hasUpdated = await window.store.syncFromSharedCache(({ newTxCount }) => {
+    updatedCount = newTxCount;
+  });
+
+  await window.store.syncToSharedCache();
+  renderApp();
+
+  if (hasUpdated && updatedCount > 0) {
+    showToast(`${updatedCount} yeni işlem senkronize edildi! ✨`, 'success');
+  } else {
+    showToast('Tüm veriler zaten PWA ile eşit ve güncel! ✅', 'success');
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.classList.remove('opacity-70');
+  }
+}
+window.triggerManualSync = triggerManualSync;
+
 
 
 

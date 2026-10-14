@@ -204,6 +204,12 @@
       }
 
       const store = window.store;
+
+      // Önce paylaşılan önbellekten (PWA verilerinden) senkronize et
+      store.syncFromSharedCache().then(() => {
+        renderCategories();
+      });
+
       const currency = store.data.settings.currency || '₺';
       const transferFee = store.data.settings.transferFee || 15.00;
 
@@ -217,7 +223,7 @@
       const urlNote = params.get('note');
 
       // Kategorileri yükle (sadece gider)
-      const categories = store.data.categories.filter(c => c.type === 'expense');
+      let categories = store.data.categories.filter(c => c.type === 'expense');
       const chipsContainer = document.getElementById('categoryChipsContainer');
       const categoryLabel = document.getElementById('selectedCategoryLabel');
       const categoryInput = document.getElementById('selectedCategoryId');
@@ -225,6 +231,7 @@
       let selectedCatId = urlCategory || (categories[0] ? categories[0].id : '');
 
       function renderCategories() {
+        categories = store.data.categories.filter(c => c.type === 'expense');
         chipsContainer.innerHTML = '';
         categories.forEach(cat => {
           const btn = document.createElement('button');
