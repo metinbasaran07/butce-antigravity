@@ -31,10 +31,10 @@
   ],
   "shortcuts": [
     {
-      "name": "Gider Ekle",
-      "short_name": "Gider",
-      "description": "Doğrudan gider ekleme menüsünü aç",
-      "url": "/?action=expense",
+      "name": "Hızlı Gider Ekle",
+      "short_name": "Gider Ekle",
+      "description": "Doğrudan hızlı gider popup menüsünü aç",
+      "url": "/popup.html",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]

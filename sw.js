@@ -2,6 +2,7 @@ const CACHE_NAME = 'butcem-pwa-v1';
 const ASSETS = [
   './',
   './index.html',
+  './popup.html',
   './manifest.json',
   './favicon.svg',
   './css/app.css',

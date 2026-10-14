@@ -13,6 +13,7 @@ if (!fs.existsSync(targetDir)) {
 
 const itemsToCopy = [
   'index.html',
+  'popup.html',
   'favicon.svg',
   'manifest.json',
   'sw.js',

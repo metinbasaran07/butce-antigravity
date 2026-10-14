@@ -31,6 +31,32 @@ document.addEventListener('DOMContentLoaded', () => {
   renderApp();
   
   const params = new URLSearchParams(window.location.search);
+  
+  // Popup modunda doğrudan popup.html'e yönlendir
+  if (params.get('mode') === 'popup' || params.has('popup')) {
+    window.location.replace('popup.html' + window.location.search);
+    return;
+  }
+
+  // Storage ve BroadcastChannel dinleyici: Kestirme popup'ından gelen yeni harcamaları anında ekrana yansıt
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'butcem_app_data_v1') {
+      window.store.data = window.store.load();
+      renderApp();
+    }
+  });
+
+  try {
+    const syncChannel = new BroadcastChannel('butcem_sync');
+    syncChannel.onmessage = (event) => {
+      if (event.data && event.data.type === 'NEW_TRANSACTION') {
+        window.store.data = window.store.load();
+        renderApp();
+        showToast('Kestirme üzerinden yeni gider senkronize edildi! ⚡', 'success');
+      }
+    };
+  } catch (err) {}
+
   const action = params.get('action');
   const type = params.get('type');
   const amount = params.get('amount');
@@ -1621,12 +1647,13 @@ function resetPastDistribution() {
 
 // --- iPHONE EYLEM DÜĞMESİ & KESTİRME YÖNETİMİ ---
 function copyExpenseShortcutUrl() {
-  const baseUrl = window.location.origin + window.location.pathname;
-  const fullUrl = `${baseUrl}?action=expense`;
+  const origin = window.location.origin;
+  const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+  const fullUrl = `${origin}${basePath}popup.html`;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(fullUrl).then(() => {
-      showToast('Gider ekleme bağlantısı kopyalandı! Kestirmeler uygulamasında "URL Aç" eylemine yapıştırın ⚡', 'success');
+      showToast('Popup kestirme bağlantısı kopyalandı! Kestirmeler uygulamasında "Web Sayfasını Göster" eylemine yapıştırın ⚡', 'success');
     }).catch(() => {
       fallbackCopyText(fullUrl);
     });
@@ -1635,6 +1662,15 @@ function copyExpenseShortcutUrl() {
   }
 }
 window.copyExpenseShortcutUrl = copyExpenseShortcutUrl;
+
+function openExpensePopup() {
+  const width = 420;
+  const height = 620;
+  const left = (window.screen.width - width) / 2;
+  const top = (window.screen.height - height) / 2;
+  window.open('popup.html', 'ButcemExpensePopup', `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no`);
+}
+window.openExpensePopup = openExpensePopup;
 
 function fallbackCopyText(text) {
   const textArea = document.createElement('textarea');
@@ -1645,7 +1681,7 @@ function fallbackCopyText(text) {
   textArea.select();
   try {
     document.execCommand('copy');
-    showToast('Gider ekleme bağlantısı kopyalandı! Kestirmeler uygulamasında "URL Aç" eylemine yapıştırın ⚡', 'success');
+    showToast('Popup kestirme bağlantısı kopyalandı! Kestirmeler uygulamasında "Web Sayfasını Göster" eylemine yapıştırın ⚡', 'success');
   } catch (err) {
     showToast('Kopyalama başarısız oldu.', 'error');
   }

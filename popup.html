@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Bütçem - Hızlı Gider Ekle</title>
+  
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- Tailwind CSS, Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            zinc: {
+              850: '#1f1f23',
+              950: '#09090b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col justify-between p-4 sm:p-6 select-none antialiased">
+
+  <!-- ==================== FORM GÖRÜNÜMÜ ==================== -->
+  <div id="formContainer" class="max-w-md mx-auto w-full flex-1 flex flex-col justify-between">
+    
+    <!-- Başlık & Senkronizasyon Durumu -->
+    <header class="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold">
+          <i data-lucide="minus-circle" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h1 class="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+            <span>Hızlı Gider Ekle</span>
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Senkronize
+            </span>
+          </h1>
+          <p class="text-[10px] text-zinc-400">Apple Kestirmeler & Eylem Düğmesi Modu</p>
+        </div>
+      </div>
+
+      <button type="button" onclick="window.close()" title="Kapat" class="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </header>
+
+    <!-- Ana Form -->
+    <form id="popupExpenseForm" class="space-y-4 my-auto py-3">
+      
+      <!-- Tutar Girişi (Büyük & Otomatik Odaklı) -->
+      <div class="card-clean p-4 rounded-3xl text-center bg-zinc-900/90 border border-zinc-800/80 shadow-lg">
+        <label for="popupAmount" class="block text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">
+          Harcama Tutarı
+        </label>
+        <div class="flex items-center justify-center gap-2">
+          <span class="text-2xl sm:text-3xl font-extrabold text-rose-500">₺</span>
+          <input 
+            type="number" 
+            step="0.01" 
+            id="popupAmount" 
+            required 
+            placeholder="0,00" 
+            inputmode="decimal"
+            autofocus
+            class="w-full text-center text-3xl sm:text-4xl font-black bg-transparent border-0 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-0 tabular-nums">
+        </div>
+      </div>
+
+      <!-- Kategori Seçimi (Görsel Haplar) -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5 px-0.5">
+          <label class="text-xs font-semibold text-zinc-300">Kategori</label>
+          <span id="selectedCategoryLabel" class="text-[11px] font-semibold text-indigo-400"></span>
+        </div>
+        <div id="categoryChipsContainer" class="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar">
+          <!-- Dinamik doldurulur -->
+        </div>
+        <input type="hidden" id="selectedCategoryId" required>
+      </div>
+
+      <!-- Ödeme Yöntemi ve İBAN -->
+      <div class="grid grid-cols-2 gap-2">
+        <label class="cursor-pointer">
+          <input type="radio" name="popupPaymentMethod" value="card" checked class="peer sr-only">
+          <div class="py-2 px-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-center text-xs font-semibold text-zinc-400 peer-checked:bg-zinc-800 peer-checked:text-white peer-checked:border-zinc-700 transition flex items-center justify-center gap-1.5">
+            <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+            <span>Kart</span>
+          </div>
+        </label>
+
+        <label class="cursor-pointer">
+          <input type="radio" name="popupPaymentMethod" value="cash" class="peer sr-only">
+          <div class="py-2 px-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-center text-xs font-semibold text-zinc-400 peer-checked:bg-zinc-800 peer-checked:text-white peer-checked:border-zinc-700 transition flex items-center justify-center gap-1.5">
+            <i data-lucide="banknote" class="w-3.5 h-3.5"></i>
+            <span>Nakit</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- Açıklama (Opsiyonel) -->
+      <div>
+        <label for="popupNote" class="block text-xs font-medium text-zinc-400 mb-1">Açıklama (Opsiyonel)</label>
+        <input 
+          type="text" 
+          id="popupNote" 
+          placeholder="Örn: Market alışverişi, akşam yemeği..." 
+          class="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl px-3.5 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-700">
+      </div>
+
+      <!-- İBAN Komisyonu Seçeneği -->
+      <div id="ibanBoxWrapper" class="p-2.5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
+        <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-zinc-300">
+          <input type="checkbox" id="popupIbanFee" class="rounded text-indigo-600 focus:ring-0 cursor-pointer w-4 h-4">
+          <span>İBAN Komisyonu Ekle</span>
+        </label>
+        <span id="popupIbanFeeAmount" class="text-xs font-bold text-indigo-400">+15,00 ₺</span>
+      </div>
+
+      <!-- Kaydet Butonu -->
+      <button 
+        type="submit" 
+        id="submitBtn"
+        class="w-full py-3.5 px-4 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-bold rounded-2xl text-sm transition active:scale-98 shadow-lg shadow-rose-950/40 flex items-center justify-center gap-2">
+        <i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>
+        <span>Kaydet & Senkronize Et</span>
+      </button>
+
+    </form>
+
+    <!-- Alt Bilgilendirme -->
+    <footer class="pt-2 text-center text-[10px] text-zinc-500">
+      Kayıt doğrudan Bütçem cihaz veritabanınıza işlenir.
+    </footer>
+  </div>
+
+  <!-- ==================== BAŞARI EKRANI ==================== -->
+  <div id="successContainer" class="hidden max-w-md mx-auto w-full flex-1 flex flex-col items-center justify-center text-center p-4 space-y-4 animate-fade-in">
+    <div class="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center shadow-xl">
+      <i data-lucide="check" class="w-8 h-8 stroke-[3]"></i>
+    </div>
+
+    <div>
+      <h2 class="text-base font-extrabold text-white">Gider Başarıyla Kaydedildi!</h2>
+      <p id="successSummaryText" class="text-xs text-zinc-400 mt-1"></p>
+    </div>
+
+    <div class="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 w-full text-xs text-zinc-300 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="text-zinc-500">Senkronizasyon:</span>
+        <span class="font-bold text-emerald-400 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Tamamlandı
+        </span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-zinc-500">Konum:</span>
+        <span class="font-semibold text-zinc-300">Bütçem Cihaz Depolama</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2.5 w-full pt-2">
+      <button 
+        type="button" 
+        onclick="resetAndAddAnother()" 
+        class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 rounded-2xl text-xs font-semibold transition active:scale-95">
+        + Yeni Gider
+      </button>
+
+      <button 
+        type="button" 
+        onclick="window.close()" 
+        class="py-2.5 px-3 bg-white text-zinc-950 font-bold rounded-2xl text-xs transition active:scale-95 shadow-md">
+        Bitti / Kapat
+      </button>
+    </div>
+
+    <a href="index.html" class="text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 hover:underline pt-1">
+      Uygulamaya Git →
+    </a>
+  </div>
+
+  <!-- Scriptler -->
+  <script src="js/store.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) window.lucide.createIcons();
+
+      // Store başlat
+      if (!window.store) {
+        window.store = new Store();
+      }
+
+      const store = window.store;
+      const currency = store.data.settings.currency || '₺';
+      const transferFee = store.data.settings.transferFee || 15.00;
+
+      const feeEl = document.getElementById('popupIbanFeeAmount');
+      if (feeEl) feeEl.textContent = `+${transferFee.toFixed(2)} ${currency}`;
+
+      // URL parametrelerini oku (Apple Shortcuts girişleri için)
+      const params = new URLSearchParams(window.location.search);
+      const urlAmount = params.get('amount');
+      const urlCategory = params.get('category') || params.get('categoryId');
+      const urlNote = params.get('note');
+
+      // Kategorileri yükle (sadece gider)
+      const categories = store.data.categories.filter(c => c.type === 'expense');
+      const chipsContainer = document.getElementById('categoryChipsContainer');
+      const categoryLabel = document.getElementById('selectedCategoryLabel');
+      const categoryInput = document.getElementById('selectedCategoryId');
+
+      let selectedCatId = urlCategory || (categories[0] ? categories[0].id : '');
+
+      function renderCategories() {
+        chipsContainer.innerHTML = '';
+        categories.forEach(cat => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSelected = cat.id === selectedCatId;
+          
+          btn.className = `shrink-0 px-3 py-2 rounded-2xl text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 border ${
+            isSelected 
+              ? 'bg-rose-500/20 border-rose-500 text-rose-300' 
+              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-850 hover:text-zinc-200'
+          }`;
+
+          btn.innerHTML = `
+            <span class="w-2 h-2 rounded-full" style="background-color: ${cat.color || '#rose-500'}"></span>
+            <span>${cat.name}</span>
+          `;
+
+          btn.addEventListener('click', () => {
+            selectedCatId = cat.id;
+            categoryInput.value = cat.id;
+            categoryLabel.textContent = cat.name;
+            renderCategories();
+          });
+
+          chipsContainer.appendChild(btn);
+        });
+
+        categoryInput.value = selectedCatId;
+        const currentCat = categories.find(c => c.id === selectedCatId);
+        if (currentCat) {
+          categoryLabel.textContent = currentCat.name;
+        }
+      }
+
+      renderCategories();
+
+      // URL parametresi ile gelen tutar & not
+      const amountInput = document.getElementById('popupAmount');
+      if (urlAmount && amountInput) {
+        amountInput.value = urlAmount;
+      }
+      const noteInput = document.getElementById('popupNote');
+      if (urlNote && noteInput) {
+        noteInput.value = urlNote;
+      }
+
+      // Odaklan
+      setTimeout(() => {
+        if (amountInput) amountInput.focus();
+      }, 150);
+
+      // Form Submit
+      const form = document.getElementById('popupExpenseForm');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const amountVal = parseFloat(amountInput.value);
+        if (!amountVal || isNaN(amountVal) || amountVal <= 0) {
+          amountInput.focus();
+          return;
+        }
+
+        const catId = categoryInput.value || selectedCatId;
+        const noteVal = noteInput.value.trim();
+        const paymentMethod = document.querySelector('input[name="popupPaymentMethod"]:checked')?.value || 'card';
+        const hasTransferFee = document.getElementById('popupIbanFee').checked;
+
+        const tx = {
+          type: 'expense',
+          amount: amountVal,
+          categoryId: catId,
+          date: new Date().toISOString().split('T')[0],
+          note: noteVal,
+          paymentMethod: paymentMethod,
+          hasTransferFee: hasTransferFee,
+          transferFeeAmount: hasTransferFee ? transferFee : 0
+        };
+
+        // Store'a kaydet
+        store.addTransaction(tx);
+
+        // Diğer sekmelere / ana uygulamaya anında senkronizasyon bildir
+        try {
+          const channel = new BroadcastChannel('butcem_sync');
+          channel.postMessage({ type: 'NEW_TRANSACTION', transaction: tx });
+        } catch (err) {}
+
+        // Dokunsal titreşim (Haptic)
+        if (navigator.vibrate) {
+          navigator.vibrate([40, 60, 40]);
+        }
+
+        // Başarı ekranını göster
+        showSuccessView(tx);
+      });
+    });
+
+    function showSuccessView(tx) {
+      document.getElementById('formContainer').classList.add('hidden');
+      const successEl = document.getElementById('successContainer');
+      successEl.classList.remove('hidden');
+
+      const cat = window.store.data.categories.find(c => c.id === tx.categoryId);
+      const catName = cat ? cat.name : 'Gider';
+      const currency = window.store.data.settings.currency || '₺';
+
+      const summaryText = `${tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${currency} • ${catName}${tx.note ? ' (' + tx.note + ')' : ''}`;
+      document.getElementById('successSummaryText').textContent = summaryText;
+
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function resetAndAddAnother() {
+      document.getElementById('successContainer').classList.add('hidden');
+      document.getElementById('formContainer').classList.remove('hidden');
+      const amountInput = document.getElementById('popupAmount');
+      if (amountInput) {
+        amountInput.value = '';
+        amountInput.focus();
+      }
+      document.getElementById('popupNote').value = '';
+      document.getElementById('popupIbanFee').checked = false;
+    }
+  </script>
+</body>
+</html>
